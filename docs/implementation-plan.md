@@ -1,0 +1,696 @@
+# 実装計画
+
+## 開発フェーズ
+
+全体を6つのフェーズに分け、段階的に実装していきます。
+
+---
+
+## Phase 0: プロジェクトセットアップ（1週間）
+
+### 目標
+Next.jsプロジェクトの初期セットアップと開発環境の構築
+
+### タスク
+
+#### 1. Next.jsプロジェクト作成
+```bash
+npx create-next-app@latest timekeeper --typescript --tailwind --app --src-dir
+cd timekeeper
+```
+
+- [x] App Router使用
+- [x] TypeScript有効
+- [x] TailwindCSS有効
+- [x] src/ディレクトリ使用
+
+#### 2. shadcn/uiセットアップ
+```bash
+npx shadcn-ui@latest init
+```
+
+必要なコンポーネントをインストール:
+```bash
+npx shadcn-ui@latest add button
+npx shadcn-ui@latest add card
+npx shadcn-ui@latest add input
+npx shadcn-ui@latest add label
+npx shadcn-ui@latest add select
+npx shadcn-ui@latest add dialog
+npx shadcn-ui@latest add tabs
+npx shadcn-ui@latest add badge
+npx shadcn-ui@latest add separator
+npx shadcn-ui@latest add toast
+npx shadcn-ui@latest add dropdown-menu
+```
+
+#### 3. 依存パッケージインストール
+```bash
+pnpm add zustand zod react-hook-form @hookform/resolvers date-fns
+pnpm add lucide-react
+pnpm add -D @types/node
+```
+
+#### 4. プロジェクト構造作成
+```
+src/
+├── app/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   ├── patterns/
+│   ├── places/
+│   ├── calendar/
+│   └── settings/
+├── components/
+│   ├── ui/           # shadcn/ui
+│   ├── layout/       # レイアウト
+│   ├── timeline/     # タイムライン
+│   ├── forms/        # フォーム
+│   └── common/       # 共通
+├── lib/
+│   ├── storage/      # LocalStorage
+│   ├── calendar/     # CalDAV
+│   ├── scheduler/    # スケジューラー
+│   ├── utils/        # ユーティリティ
+│   └── validations/  # Zodスキーマ
+├── hooks/            # カスタムフック
+├── store/            # Zustand
+├── types/            # 型定義
+└── constants/        # 定数
+```
+
+#### 5. ESLint・Prettier設定
+```bash
+pnpm add -D prettier prettier-plugin-tailwindcss
+pnpm add -D husky lint-staged
+```
+
+`.prettierrc`:
+```json
+{
+  "semi": true,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "plugins": ["prettier-plugin-tailwindcss"]
+}
+```
+
+#### 6. Git初期化
+```bash
+git init
+git add .
+git commit -m "feat: initial project setup"
+```
+
+#### 7. Vercelデプロイ設定
+- Vercelプロジェクト作成
+- GitHub連携
+- 環境変数設定
+
+**成果物**:
+- ✅ 動作するNext.jsアプリ
+- ✅ shadcn/uiセットアップ完了
+- ✅ Vercelデプロイ完了
+
+---
+
+## Phase 1: データ層の実装（1週間）
+
+### 目標
+LocalStorageによるデータ永続化と型定義の完成
+
+### タスク
+
+#### 1. TypeScript型定義（`src/types/index.ts`）
+- [ ] Location型
+- [ ] RoutineItem型
+- [ ] LifePattern型
+- [ ] TravelRoute型
+- [ ] CalendarEvent型
+- [ ] DailyState型
+- [ ] Settings型
+- [ ] ScheduleItem型
+
+参照: `data-model.md`
+
+#### 2. Zodバリデーションスキーマ（`src/lib/validations/`）
+- [ ] LocationSchema
+- [ ] RoutineItemSchema
+- [ ] LifePatternSchema
+- [ ] TravelRouteSchema
+- [ ] CalendarEventSchema
+- [ ] SettingsSchema
+
+#### 3. LocalStorage操作（`src/lib/storage/`）
+```typescript
+// storage.ts
+export class Storage<T> {
+  constructor(private key: string) {}
+
+  get(): T | null
+  set(data: T): void
+  update(updater: (data: T) => T): void
+  delete(): void
+}
+
+// locations.ts
+export const locationsStorage = new Storage<Location[]>('timekeeper_locations');
+
+// patterns.ts
+export const patternsStorage = new Storage<LifePattern[]>('timekeeper_patterns');
+
+// ... 他のストレージも同様
+```
+
+#### 4. データアクセス層（`src/lib/data/`）
+各エンティティのCRUD操作を実装:
+
+```typescript
+// locations.ts
+export const locationService = {
+  getAll(): Location[]
+  getById(id: string): Location | null
+  create(data: Omit<Location, 'id' | 'createdAt' | 'updatedAt'>): Location
+  update(id: string, data: Partial<Location>): Location
+  delete(id: string): void
+};
+```
+
+同様に:
+- [ ] locationService
+- [ ] routineItemService
+- [ ] patternService
+- [ ] travelRouteService
+- [ ] calendarEventService
+- [ ] dailyStateService
+- [ ] settingsService
+
+#### 5. Zustand Store（`src/store/`）
+```typescript
+// useLocationStore.ts
+export const useLocationStore = create<LocationStore>((set) => ({
+  locations: [],
+  addLocation: (location) => set((state) => ({ ... })),
+  updateLocation: (id, data) => set((state) => ({ ... })),
+  deleteLocation: (id) => set((state) => ({ ... })),
+  loadLocations: () => set({ locations: locationService.getAll() }),
+}));
+```
+
+同様に:
+- [ ] useLocationStore
+- [ ] useRoutineStore
+- [ ] usePatternStore
+- [ ] useTravelRouteStore
+- [ ] useCalendarStore
+- [ ] useDailyStateStore
+- [ ] useSettingsStore
+
+#### 6. ユーティリティ関数（`src/lib/utils/`）
+- [ ] 時刻操作（parseTime, formatTime, addMinutes, etc.）
+- [ ] 日付操作（formatDate, isToday, etc.）
+- [ ] UUID生成
+- [ ] 配列操作
+
+**成果物**:
+- ✅ 完全な型定義
+- ✅ LocalStorageによる永続化
+- ✅ Zustandによる状態管理
+- ✅ データアクセス層
+
+---
+
+## Phase 2: コアロジックの実装（1-2週間）
+
+### 目標
+スケジュール生成とリアルタイム追跡のコアロジックを実装
+
+### タスク
+
+#### 1. パターン選択ロジック（`src/lib/scheduler/pattern-selector.ts`）
+```typescript
+export function selectPattern(
+  date: Date,
+  patterns: LifePattern[],
+  calendarEvents: CalendarEvent[]
+): LifePattern
+```
+
+- [ ] 曜日マッチング
+- [ ] キーワードマッチング
+- [ ] 優先度による選択
+- [ ] デフォルトフォールバック
+
+#### 2. 場所マッチング（`src/lib/scheduler/location-matcher.ts`）
+```typescript
+export function matchLocation(
+  locationName: string,
+  locations: Location[]
+): Location | null
+```
+
+- [ ] 名前の完全一致
+- [ ] エイリアスマッチング
+- [ ] あいまいマッチング（将来）
+
+#### 3. スケジュール生成エンジン（`src/lib/scheduler/generator.ts`）
+```typescript
+export function generateDailySchedule(
+  date: Date,
+  pattern: LifePattern,
+  calendarEvents: CalendarEvent[],
+  locations: Location[],
+  travelRoutes: TravelRoute[],
+  settings: Settings
+): DailyState
+```
+
+実装内容:
+- [ ] 習慣項目からScheduleItem生成
+- [ ] カレンダー予定からScheduleItem生成
+- [ ] 時系列マージ
+- [ ] 現在地追跡
+- [ ] 移動イベント挿入
+- [ ] 衝突検出・解決
+
+#### 4. 移動ルート検索（`src/lib/scheduler/route-finder.ts`）
+```typescript
+export function findRoute(
+  fromLocationId: string,
+  toLocationId: string,
+  routes: TravelRoute[]
+): TravelRoute | null
+
+export function findFasterRoutes(
+  fromLocationId: string,
+  toLocationId: string,
+  currentDuration: number,
+  routes: TravelRoute[]
+): TravelRoute[]
+```
+
+#### 5. 遅延検出・調整（`src/lib/scheduler/delay-adjuster.ts`）
+```typescript
+export function detectDelay(
+  event: ScheduleItem,
+  actualEndTime: Date
+): DelayRecord | null
+
+export function adjustSchedule(
+  schedule: ScheduleItem[],
+  delayMinutes: number,
+  fromIndex: number
+): ScheduleItem[]
+```
+
+実装内容:
+- [ ] 遅延時間計算
+- [ ] 柔軟なイベントの調整
+- [ ] 固定イベントの保護
+- [ ] 移動時間の最適化提案
+
+#### 6. イベント完了ハンドラー（`src/lib/scheduler/event-handler.ts`）
+```typescript
+export function completeEvent(
+  state: DailyState,
+  eventId: string,
+  actualEndTime?: Date
+): DailyState
+
+export function skipEvent(
+  state: DailyState,
+  eventId: string
+): DailyState
+```
+
+**成果物**:
+- ✅ スケジュール自動生成
+- ✅ 現在地追跡
+- ✅ 遅延検出・調整
+- ✅ イベント完了処理
+
+---
+
+## Phase 3: 基本UI実装（2週間）
+
+### 目標
+パターン管理、場所・移動時間設定画面の実装
+
+### タスク
+
+#### 1. レイアウトコンポーネント（`src/components/layout/`）
+- [ ] RootLayout（`src/app/layout.tsx`）
+- [ ] Sidebar（デスクトップ）
+- [ ] BottomTabBar（モバイル）
+- [ ] Header
+- [ ] Navigation
+
+#### 2. パターン管理画面（`src/app/patterns/`）
+- [ ] パターン一覧表示
+- [ ] パターン作成フォーム
+- [ ] パターン編集フォーム
+- [ ] 習慣項目管理
+  - [ ] 習慣項目追加モーダル
+  - [ ] 習慣項目編集モーダル
+  - [ ] ドラッグ&ドロップ並び替え
+- [ ] パターン削除（確認ダイアログ付き）
+
+**使用コンポーネント**:
+- Dialog（モーダル）
+- Form（react-hook-form + zod）
+- Select（ドロップダウン）
+- Checkbox
+- Input
+
+#### 3. 場所・移動時間設定画面（`src/app/places/`）
+- [ ] タブコンポーネント（場所/移動ルート）
+- [ ] 場所タブ
+  - [ ] 場所一覧表示
+  - [ ] 場所追加フォーム
+  - [ ] 場所編集フォーム
+  - [ ] 場所削除
+- [ ] 移動ルートタブ
+  - [ ] ルート一覧表示（区間でグループ化）
+  - [ ] ルート追加フォーム
+  - [ ] ルート編集フォーム
+  - [ ] デフォルト手段の切り替え
+  - [ ] ルート削除
+
+#### 4. 設定画面（`src/app/settings/`）
+- [ ] 一般設定
+  - [ ] デフォルト開始位置
+  - [ ] 週の開始曜日
+  - [ ] 時刻表示形式
+- [ ] データ管理
+  - [ ] エクスポート機能
+  - [ ] インポート機能
+  - [ ] データ削除（確認ダイアログ）
+
+#### 5. 共通フォームコンポーネント（`src/components/forms/`）
+- [ ] LocationForm
+- [ ] RoutineItemForm
+- [ ] PatternForm
+- [ ] TravelRouteForm
+
+#### 6. レスポンシブ対応
+- [ ] モバイルレイアウト
+- [ ] タブレットレイアウト
+- [ ] デスクトップレイアウト
+
+**成果物**:
+- ✅ パターンCRUD完成
+- ✅ 場所・移動ルートCRUD完成
+- ✅ 設定画面完成
+- ✅ レスポンシブ対応
+
+---
+
+## Phase 4: ホーム画面とタイムライン（2週間）
+
+### 目標
+メイン機能であるスケジュール表示とリアルタイム追跡の実装
+
+### タスク
+
+#### 1. ホーム画面（`src/app/page.tsx`）
+- [ ] ページレイアウト
+- [ ] 日付ナビゲーション（前日/翌日）
+- [ ] パターンセレクター
+- [ ] 現在地表示
+
+#### 2. 現在・次のイベントカード（`src/components/timeline/`）
+- [ ] CurrentEventCard
+  - [ ] イベント情報表示
+  - [ ] 残り時間カウントダウン
+  - [ ] 完了ボタン
+  - [ ] スキップボタン
+- [ ] NextEventCard
+  - [ ] 次のイベント情報
+  - [ ] 開始までの時間
+
+#### 3. タイムラインコンポーネント（`src/components/timeline/`）
+- [ ] Timeline（親コンポーネント）
+- [ ] TimelineItem
+  - [ ] ステータスアイコン（✅🔵⏰⚠️）
+  - [ ] 時刻表示
+  - [ ] タイトル・場所表示
+  - [ ] 移動イベントの特殊表示
+  - [ ] 移動手段変更ボタン
+  - [ ] 空き時間の表示
+- [ ] 仮想スクロール（長いリストの場合）
+
+#### 4. リアルタイム更新（`src/hooks/`）
+- [ ] useCurrentTime
+  - [ ] 1秒ごとに現在時刻を更新
+- [ ] useNextEventCountdown
+  - [ ] 次のイベントまでの時間を計算
+- [ ] useActiveEvent
+  - [ ] 現在のイベントを動的に判定
+
+#### 5. イベント完了・スキップ処理
+- [ ] completeEvent処理
+  - [ ] ステータス更新
+  - [ ] 遅延検出
+  - [ ] スケジュール調整
+  - [ ] 現在地更新
+- [ ] skipEvent処理
+  - [ ] ステータス更新
+  - [ ] 次のイベントをアクティブに
+
+#### 6. 遅延通知コンポーネント（`src/components/common/`）
+- [ ] DelayNotification
+  - [ ] 遅延情報表示
+  - [ ] 移動手段変更提案
+  - [ ] アクション（承諾/却下）
+
+#### 7. カスタムフック（`src/hooks/`）
+- [ ] useDailySchedule
+- [ ] useScheduleGenerator
+- [ ] useEventCompletion
+
+**成果物**:
+- ✅ ホーム画面完成
+- ✅ タイムライン表示
+- ✅ リアルタイム追跡
+- ✅ イベント完了機能
+- ✅ 遅延検出・通知
+
+---
+
+## Phase 5: カレンダー連携（2-3週間）
+
+### 目標
+Apple Calendar（CalDAV）との連携機能を実装
+
+### タスク
+
+#### 1. CalDAV認証（`src/lib/calendar/auth.ts`）
+- [ ] 認証フロー実装
+  - [ ] Apple IDログイン
+  - [ ] App専用パスワード対応
+  - [ ] トークン保存（暗号化）
+- [ ] 認証状態管理
+- [ ] トークン更新
+
+**使用ライブラリ**: `tsdav`
+
+#### 2. カレンダー操作（`src/lib/calendar/caldav.ts`）
+- [ ] カレンダー一覧取得
+- [ ] イベント取得
+  - [ ] 日付範囲指定
+  - [ ] フィルタリング
+- [ ] イベントパース
+  - [ ] iCalendar形式のパース
+  - [ ] CalendarEventへの変換
+
+#### 3. 同期処理（`src/lib/calendar/sync.ts`）
+- [ ] 手動同期
+- [ ] 自動同期（定期実行）
+- [ ] 差分更新
+- [ ] 同期履歴管理
+
+#### 4. カレンダー連携画面（`src/app/calendar/`）
+- [ ] 認証状態表示
+- [ ] 接続/解除ボタン
+- [ ] 手動同期ボタン
+- [ ] 同期設定
+  - [ ] 自動同期ON/OFF
+  - [ ] 同期間隔設定
+  - [ ] 取得オプション
+- [ ] 同期履歴表示
+
+#### 5. 認証モーダル（`src/components/calendar/`）
+- [ ] AuthDialog
+  - [ ] Apple IDフォーム
+  - [ ] エラー表示
+  - [ ] ローディング状態
+
+#### 6. エラーハンドリング
+- [ ] 認証エラー
+- [ ] ネットワークエラー
+- [ ] パースエラー
+- [ ] ユーザーへのエラー通知
+
+**注意事項**:
+- CalDAVの実装は複雑なため、時間に余裕を持つ
+- 必要に応じてフォールバック（.icsインポート）を実装
+
+**成果物**:
+- ✅ Apple Calendar認証
+- ✅ イベント同期
+- ✅ 自動/手動同期
+- ✅ カレンダー連携画面
+
+---
+
+## Phase 6: 仕上げ・デプロイ（1週間）
+
+### 目標
+バグ修正、最適化、本番デプロイ
+
+### タスク
+
+#### 1. バグ修正
+- [ ] 全機能の動作確認
+- [ ] エッジケースのテスト
+- [ ] エラーハンドリングの改善
+
+#### 2. パフォーマンス最適化
+- [ ] バンドルサイズ確認
+- [ ] Lighthouseスコア改善
+- [ ] 画像最適化
+- [ ] コード分割
+
+#### 3. アクセシビリティ
+- [ ] キーボードナビゲーション確認
+- [ ] ARIA属性追加
+- [ ] コントラスト比確認
+- [ ] スクリーンリーダーテスト
+
+#### 4. ドキュメント整備
+- [ ] README更新
+- [ ] 使い方ガイド作成
+- [ ] トラブルシューティング
+
+#### 5. 本番デプロイ
+- [ ] 環境変数設定（Vercel）
+- [ ] カスタムドメイン設定（任意）
+- [ ] アナリティクス設定（任意）
+- [ ] エラートラッキング設定（任意）
+
+#### 6. ユーザーテスト
+- [ ] 実際に使ってみる
+- [ ] フィードバック収集
+- [ ] 改善点の洗い出し
+
+**成果物**:
+- ✅ バグのない安定版
+- ✅ 本番環境デプロイ完了
+- ✅ ドキュメント完成
+
+---
+
+## スケジュール概要
+
+| フェーズ | 期間 | 累積 |
+|---------|------|------|
+| Phase 0: セットアップ | 1週間 | 1週間 |
+| Phase 1: データ層 | 1週間 | 2週間 |
+| Phase 2: コアロジック | 1-2週間 | 3-4週間 |
+| Phase 3: 基本UI | 2週間 | 5-6週間 |
+| Phase 4: ホーム画面 | 2週間 | 7-8週間 |
+| Phase 5: カレンダー連携 | 2-3週間 | 9-11週間 |
+| Phase 6: 仕上げ | 1週間 | 10-12週間 |
+
+**合計: 約2.5-3ヶ月**
+
+---
+
+## リスクと対策
+
+### リスク1: CalDAV実装の複雑さ
+**対策**:
+- まず.icsインポートで代替実装
+- ライブラリ（tsdav）の使用
+- 必要に応じてGoogle Calendar APIへの変更
+
+### リスク2: スケジュール生成ロジックの複雑さ
+**対策**:
+- 段階的な実装（まずシンプルに）
+- 十分なテストケース作成
+- エッジケースのドキュメント化
+
+### リスク3: レスポンシブ対応の工数
+**対策**:
+- モバイルファーストで実装
+- TailwindCSSのブレークポイント活用
+- shadcn/uiの既存コンポーネント使用
+
+### リスク4: LocalStorageの容量制限
+**対策**:
+- データ量のモニタリング
+- 古いデータの自動削除機能
+- 早めにSupabase移行を検討
+
+---
+
+## 開発ガイドライン
+
+### コーディング規約
+- TypeScript strictモード
+- ESLint + Prettierに従う
+- コミットメッセージは[Conventional Commits](https://www.conventionalcommits.org/)形式
+
+### ブランチ戦略
+```
+main           # 本番環境
+├── develop    # 開発環境
+└── feature/*  # 機能開発
+```
+
+### コミットプレフィックス
+- `feat:` 新機能
+- `fix:` バグ修正
+- `docs:` ドキュメント
+- `refactor:` リファクタリング
+- `test:` テスト追加
+- `chore:` ビルド・設定変更
+
+### コンポーネント設計原則
+- 単一責任の原則
+- Composition over Inheritance
+- Propsはできるだけシンプルに
+- ビジネスロジックは分離
+
+---
+
+## 完成後の拡張計画（v2以降）
+
+### 優先度高
+- [ ] Supabaseへのデータ移行
+- [ ] 複数デバイス同期
+- [ ] プッシュ通知
+- [ ] ダークモード
+
+### 優先度中
+- [ ] Google Calendar対応
+- [ ] データ分析・レポート
+- [ ] AI最適化提案
+- [ ] ウィジェット機能
+
+### 優先度低
+- [ ] チーム共有機能
+- [ ] 多言語対応
+- [ ] デスクトップアプリ（Electron）
+- [ ] モバイルアプリ（React Native）
+
+---
+
+## まとめ
+
+このフェーズ分けに従って実装を進めることで、約2.5-3ヶ月でMVPを完成させることができます。
+
+各フェーズの終了時には動作するプロトタイプが存在するため、早い段階からフィードバックを得ることが可能です。
+
+**次のステップ**: `TODO.md`を参照して、具体的なタスクから着手してください。
