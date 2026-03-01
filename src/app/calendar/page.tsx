@@ -20,7 +20,7 @@ import {
   isCalendarConnected,
   saveCalendarAuth,
 } from '@/lib/calendar/auth';
-import { syncCalendarEvents, type SyncResult } from '@/lib/calendar/sync';
+import type { SyncResult } from '@/lib/calendar/sync';
 import { useCalendarStore } from '@/store/useCalendarStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import type { CalendarAuth } from '@/types';
@@ -51,12 +51,32 @@ export default function CalendarPage() {
 
   const isConnected = isCalendarConnected();
 
-  /** 手動同期を実行する */
+  /** 手動同期を実行する（サーバー側 API Route 経由で CalDAV にアクセス） */
   const handleSync = useCallback(async () => {
+    const currentAuth = getCalendarAuth();
+    if (!currentAuth) {
+      toast.error('認証情報がありません');
+      return;
+    }
+
     setIsSyncing(true);
     setSyncResult(null);
     try {
-      const result = await syncCalendarEvents();
+      const res = await fetch('/api/caldav/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentAuth.username,
+          accessToken: currentAuth.accessToken,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: '同期に失敗しました' }));
+        throw new Error(err.error ?? '同期に失敗しました');
+      }
+
+      const result: SyncResult = await res.json();
       setSyncResult(result);
       loadCalendarEvents();
       toast.success(

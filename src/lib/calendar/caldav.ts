@@ -1,7 +1,4 @@
-'use client';
-
 import { createDAVClient, DAVCalendar, DAVCalendarObject } from 'tsdav';
-import { getCalendarAuth } from './auth';
 import type { CalendarAuth, CalendarEvent } from '@/types';
 import { generateId } from '@/lib/utils/id';
 
@@ -35,13 +32,11 @@ async function createClient(auth: CalendarAuth) {
 /**
  * サーバー上のカレンダー一覧を取得する
  *
+ * @param auth CalDAV 認証情報
  * @returns カレンダーオブジェクトの配列
- * @throws 未接続の場合、または通信エラーの場合
+ * @throws 通信エラーの場合
  */
-export async function fetchCalendars(): Promise<DAVCalendar[]> {
-  const auth = getCalendarAuth();
-  if (!auth) throw new Error('CalDAV 認証情報が見つかりません');
-
+export async function fetchCalendars(auth: CalendarAuth): Promise<DAVCalendar[]> {
   const client = await createClient(auth);
   return client.fetchCalendars();
 }
@@ -53,15 +48,17 @@ export async function fetchCalendars(): Promise<DAVCalendar[]> {
 /**
  * 指定期間のカレンダーイベントを取得する
  *
+ * @param auth CalDAV 認証情報
  * @param startDate 取得開始日（Date オブジェクト）
  * @param endDate 取得終了日（Date オブジェクト）
  * @returns CalendarEvent の配列
- * @throws 未接続の場合、または通信エラーの場合
+ * @throws 通信エラーの場合
  */
-export async function fetchEvents(startDate: Date, endDate: Date): Promise<CalendarEvent[]> {
-  const auth = getCalendarAuth();
-  if (!auth) throw new Error('CalDAV 認証情報が見つかりません');
-
+export async function fetchEvents(
+  auth: CalendarAuth,
+  startDate: Date,
+  endDate: Date
+): Promise<CalendarEvent[]> {
   const client = await createClient(auth);
   const calendars = await client.fetchCalendars();
 

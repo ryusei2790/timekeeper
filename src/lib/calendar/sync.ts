@@ -1,9 +1,7 @@
-'use client';
-
 import { fetchEvents } from './caldav';
 import { calendarEventService } from '@/lib/data/calendarEvents';
 import { settingsService } from '@/lib/data/settings';
-import type { CalendarEvent } from '@/types';
+import type { CalendarAuth, CalendarEvent } from '@/types';
 
 // -----------------------------------------------
 // 同期範囲の設定
@@ -23,10 +21,11 @@ const SYNC_RANGE_DAYS_AFTER = 14;
  * - 既存イベントとの差分を計算し、追加・更新・削除を反映する
  * - 同期成功後は Settings の lastSyncAt を更新する
  *
+ * @param auth CalDAV 認証情報
  * @returns 同期結果サマリー
  * @throws CalDAV 通信エラーの場合
  */
-export async function syncCalendarEvents(): Promise<SyncResult> {
+export async function syncCalendarEvents(auth: CalendarAuth): Promise<SyncResult> {
   const now = new Date();
   const startDate = new Date(now);
   startDate.setDate(startDate.getDate() - SYNC_RANGE_DAYS_BEFORE);
@@ -37,7 +36,7 @@ export async function syncCalendarEvents(): Promise<SyncResult> {
   endDate.setHours(23, 59, 59, 999);
 
   // CalDAV からイベントを取得
-  const fetchedEvents = await fetchEvents(startDate, endDate);
+  const fetchedEvents = await fetchEvents(auth, startDate, endDate);
 
   // 差分計算と保存
   const result = applyEventDiff(fetchedEvents);
