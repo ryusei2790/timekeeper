@@ -34,7 +34,7 @@ const uuid = z.string().uuid({ error: '有効な ID ではありません' });
 export const LocationSchema = z.object({
   id: uuid,
   name: z.string().min(1, '名前は必須です').max(50, '50文字以内で入力してください'),
-  aliases: z.array(z.string().min(1).max(50)).default([]),
+  aliases: z.array(z.string().min(1).max(50)),
   address: z.string().max(200).optional(),
   createdAt: isoDatetime,
   updatedAt: isoDatetime,
