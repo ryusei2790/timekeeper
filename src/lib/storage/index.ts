@@ -1,6 +1,5 @@
 import { STORAGE_KEYS } from '@/constants';
 import type {
-  CalendarAuth,
   CalendarEvent,
   DailyState,
   LifePattern,
@@ -31,8 +30,5 @@ export const dailyStatesStorage = new BaseStorage<DailyState[]>(STORAGE_KEYS.dai
 
 /** アプリケーション設定のストレージインスタンス */
 export const settingsStorage = new BaseStorage<Settings>(STORAGE_KEYS.settings);
-
-/** カレンダー認証情報のストレージインスタンス */
-export const calendarAuthStorage = new BaseStorage<CalendarAuth>(STORAGE_KEYS.calendarAuth);
 
 export { BaseStorage };

@@ -73,7 +73,19 @@ export function useDailySchedule() {
       settings,
     });
 
-    saveDailyState(generated);
+    // 最初の pending アイテムを active に設定して開始状態にする
+    const firstPending = generated.generatedSchedule.find((item) => item.status === 'pending');
+    const initializedSchedule = firstPending
+      ? generated.generatedSchedule.map((item) =>
+          item.id === firstPending.id ? { ...item, status: 'active' as const } : item
+        )
+      : generated.generatedSchedule;
+
+    saveDailyState({
+      ...generated,
+      generatedSchedule: initializedSchedule,
+      activeEventId: firstPending?.id ?? null,
+    });
   }, [
     todayState,
     settings,
@@ -101,7 +113,20 @@ export function useDailySchedule() {
         settings,
         startLocationId: todayState?.currentLocationId,
       });
-      saveDailyState(generated);
+
+      // 最初の pending アイテムを active に設定
+      const firstPending = generated.generatedSchedule.find((item) => item.status === 'pending');
+      const initializedSchedule = firstPending
+        ? generated.generatedSchedule.map((item) =>
+            item.id === firstPending.id ? { ...item, status: 'active' as const } : item
+          )
+        : generated.generatedSchedule;
+
+      saveDailyState({
+        ...generated,
+        generatedSchedule: initializedSchedule,
+        activeEventId: firstPending?.id ?? null,
+      });
       toast.success(`${pattern.name} でスケジュールを再生成しました`);
     },
     [settings, routineItems, calendarEvents, locations, travelRoutes, todayState, saveDailyState]

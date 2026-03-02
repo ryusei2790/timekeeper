@@ -306,35 +306,6 @@ export interface Settings {
 }
 
 // -----------------------------------------------
-// CalendarAuth（カレンダー認証情報）
-// -----------------------------------------------
-
-/**
- * カレンダー認証情報
- *
- * @security accessToken は LocalStorage に保存するため、
- * Phase 5 で Web Crypto API (AES-GCM) による暗号化を実装すること
- */
-export interface CalendarAuth {
-  /** プロバイダー */
-  provider: 'apple' | 'google';
-  /** Apple ID のメールアドレス */
-  username: string;
-  /** CalDAV サーバー URL */
-  serverUrl: string;
-  /** アクセストークン（暗号化推奨） */
-  accessToken: string;
-  /** リフレッシュトークン */
-  refreshToken?: string;
-  /** トークン有効期限（ISO 8601形式） */
-  expiresAt?: string;
-  /** ISO 8601 形式の作成日時 */
-  createdAt: string;
-  /** ISO 8601 形式の更新日時 */
-  updatedAt: string;
-}
-
-// -----------------------------------------------
 // ユーティリティ型
 // -----------------------------------------------
 

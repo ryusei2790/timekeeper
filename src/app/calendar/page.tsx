@@ -3,108 +3,69 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import {
-  disconnectCalendar,
-  getCalendarAuth,
-  isCalendarConnected,
-  saveCalendarAuth,
-} from '@/lib/calendar/auth';
+import { importCalendarEvents } from '@/lib/calendar/sync';
+import { parseIcsText } from '@/lib/calendar/ics';
 import type { SyncResult } from '@/lib/calendar/sync';
 import { useCalendarStore } from '@/store/useCalendarStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
-import type { CalendarAuth } from '@/types';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { AlertCircle, Calendar, CheckCircle, Loader2, RefreshCw, Unlink } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { AlertCircle, Calendar, CheckCircle, FileUp, Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-// -----------------------------------------------
-// ページコンポーネント
-// -----------------------------------------------
-
 export default function CalendarPage() {
-  const [auth, setAuth] = useState<CalendarAuth | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
-  const [connectOpen, setConnectOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<SyncResult | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { settings, loadSettings, updateSettings } = useSettingsStore();
+  const { settings, loadSettings } = useSettingsStore();
   const { loadCalendarEvents } = useCalendarStore();
 
-  // 初回ロード
   useEffect(() => {
-    setAuth(getCalendarAuth());
     loadSettings();
   }, [loadSettings]);
 
-  const isConnected = isCalendarConnected();
-
-  /** 手動同期を実行する（サーバー側 API Route 経由で CalDAV にアクセス） */
-  const handleSync = useCallback(async () => {
-    const currentAuth = getCalendarAuth();
-    if (!currentAuth) {
-      toast.error('認証情報がありません');
-      return;
-    }
-
-    setIsSyncing(true);
-    setSyncResult(null);
-    try {
-      const res = await fetch('/api/caldav/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: currentAuth.username,
-          accessToken: currentAuth.accessToken,
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: '同期に失敗しました' }));
-        throw new Error(err.error ?? '同期に失敗しました');
-      }
-
-      const result: SyncResult = await res.json();
-      setSyncResult(result);
-      loadCalendarEvents();
-      toast.success(
-        `同期完了: ${result.added}件追加, ${result.updated}件更新, ${result.deleted}件削除`
-      );
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '同期に失敗しました');
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [loadCalendarEvents]);
-
-  /** 接続を解除する */
-  const handleDisconnect = useCallback(() => {
-    disconnectCalendar();
-    setAuth(null);
-    setSyncResult(null);
-    toast.success('カレンダーの接続を解除しました');
+  /** ファイル選択時のハンドラー */
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setSelectedFile(file);
+    setImportResult(null);
   }, []);
 
-  /** 自動同期の切り替え */
-  const handleAutoSyncToggle = useCallback(
-    (enabled: boolean) => {
-      if (!settings) return;
-      updateSettings({ calendarSync: { ...settings.calendarSync, autoSync: enabled } });
-    },
-    [settings, updateSettings]
-  );
+  /** インポートを実行する */
+  const handleImport = useCallback(async () => {
+    if (!selectedFile) return;
+
+    setIsImporting(true);
+    setImportResult(null);
+    try {
+      const text = await selectedFile.text();
+      const events = parseIcsText(text);
+
+      if (events.length === 0) {
+        toast.error('イベントが見つかりませんでした。有効な .ics ファイルか確認してください。');
+        return;
+      }
+
+      const result = importCalendarEvents(events);
+      setImportResult(result);
+      loadCalendarEvents();
+      toast.success(
+        `インポート完了: ${result.added}件追加, ${result.updated}件更新, ${result.deleted}件削除`
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'インポートに失敗しました');
+    } finally {
+      setIsImporting(false);
+    }
+  }, [selectedFile, loadCalendarEvents]);
+
+  /** ファイル選択ダイアログを開く */
+  const handleSelectClick = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
   return (
     <div className="container max-w-2xl space-y-6 py-6">
@@ -112,264 +73,100 @@ export default function CalendarPage() {
       <div>
         <h1 className="text-2xl font-bold">カレンダー連携</h1>
         <p className="text-muted-foreground mt-1 text-sm">
-          Apple CalendarをCalDAVで接続してスケジュールを同期します
+          .ics ファイルをインポートしてスケジュールを同期します
         </p>
       </div>
 
-      {/* 接続状態カード */}
+      {/* インポートカード */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <Calendar className="h-5 w-5" />
-            <CardTitle className="text-base">Apple Calendar</CardTitle>
-            {isConnected ? (
-              <Badge variant="default" className="ml-auto bg-green-500 hover:bg-green-600">
-                <CheckCircle className="mr-1 h-3 w-3" />
-                接続済み
-              </Badge>
-            ) : (
+            <CardTitle className="text-base">カレンダーのインポート</CardTitle>
+            {settings?.calendarSync.lastSyncAt && (
               <Badge variant="secondary" className="ml-auto">
-                未接続
+                <CheckCircle className="mr-1 h-3 w-3 text-green-600" />
+                最終インポート:{' '}
+                {format(new Date(settings.calendarSync.lastSyncAt), 'M月d日 HH:mm', {
+                  locale: ja,
+                })}
               </Badge>
             )}
           </div>
+          <CardDescription className="text-xs">
+            TimeTree・Google Calendar・Apple Calendar など、.ics
+            エクスポートに対応しているカレンダーアプリのファイルをインポートできます
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isConnected && auth ? (
-            <>
-              {/* 接続済み状態 */}
-              <div className="space-y-1 text-sm">
-                <p>
-                  <span className="text-muted-foreground">アカウント: </span>
-                  <span className="font-medium">{auth.username}</span>
-                </p>
-                {settings?.calendarSync.lastSyncAt && (
-                  <p>
-                    <span className="text-muted-foreground">最終同期: </span>
-                    <span>
-                      {format(new Date(settings.calendarSync.lastSyncAt), 'M月d日 HH:mm', {
-                        locale: ja,
-                      })}
-                    </span>
-                  </p>
-                )}
-              </div>
+          {/* ファイル選択エリア */}
+          <div
+            className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 transition-colors hover:bg-gray-50"
+            onClick={handleSelectClick}
+          >
+            <FileUp className="text-muted-foreground mb-2 h-8 w-8" />
+            <p className="text-sm font-medium">
+              {selectedFile ? selectedFile.name : '.ics ファイルを選択'}
+            </p>
+            <p className="text-muted-foreground mt-0.5 text-xs">
+              クリックしてファイルを選択してください
+            </p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".ics,text/calendar"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+          </div>
 
-              {/* 同期結果 */}
-              {syncResult && (
-                <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
-                  同期完了: {syncResult.added}件追加 / {syncResult.updated}件更新 /{' '}
-                  {syncResult.deleted}件削除（合計 {syncResult.total}件）
-                </div>
+          {/* インポートボタン */}
+          {selectedFile && (
+            <Button className="w-full" onClick={handleImport} disabled={isImporting}>
+              {isImporting ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <FileUp className="mr-1.5 h-4 w-4" />
               )}
+              {isImporting ? 'インポート中...' : 'インポート'}
+            </Button>
+          )}
 
-              {/* アクションボタン */}
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={handleDisconnect}
-                >
-                  <Unlink className="mr-1.5 h-3.5 w-3.5" />
-                  接続を解除
-                </Button>
-                <Button size="sm" onClick={handleSync} disabled={isSyncing}>
-                  {isSyncing ? (
-                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
-                  )}
-                  今すぐ同期
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              {/* 未接続状態 */}
-              <p className="text-muted-foreground text-sm">
-                Apple IDとアプリ用パスワードでCalDAVに接続します
-              </p>
-              <ConnectDialog
-                open={connectOpen}
-                onOpenChange={setConnectOpen}
-                onConnected={(newAuth) => setAuth(newAuth)}
-              />
-            </>
+          {/* インポート結果 */}
+          {importResult && (
+            <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
+              インポート完了: {importResult.added}件追加 / {importResult.updated}件更新 /{' '}
+              {importResult.deleted}件削除（合計 {importResult.total}件のイベントを処理）
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* 同期設定カード */}
-      {isConnected && settings && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">同期設定</CardTitle>
-            <CardDescription className="text-xs">カレンダーの自動同期を設定します</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">自動同期</p>
-                <p className="text-muted-foreground text-xs">定期的にカレンダーを同期します</p>
-              </div>
-              <Switch
-                checked={settings.calendarSync.autoSync}
-                onCheckedChange={handleAutoSyncToggle}
-              />
+      {/* 使い方ガイドカード */}
+      <Card className="border-blue-100 bg-blue-50">
+        <CardContent className="pt-4">
+          <div className="flex gap-2">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+            <div className="space-y-2 text-sm text-blue-800">
+              <p className="font-medium">.ics ファイルの取得方法</p>
+              <ul className="ml-1 list-inside list-disc space-y-1 text-xs">
+                <li>
+                  <span className="font-medium">TimeTree</span>: アプリ設定 → カレンダー設定 →
+                  「iCal 購読」から .ics URL を開いて保存
+                </li>
+                <li>
+                  <span className="font-medium">Google Calendar</span>: 設定 → カレンダーの設定 →
+                  「カレンダーをエクスポート」
+                </li>
+                <li>
+                  <span className="font-medium">Apple Calendar</span>: ファイル → 書き出し →
+                  カレンダーを書き出し
+                </li>
+              </ul>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">同期間隔</p>
-                <p className="text-muted-foreground text-xs">
-                  {settings.calendarSync.syncIntervalMinutes}分ごとに同期
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 注意事項カード */}
-      {!isConnected && (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardContent className="pt-4">
-            <div className="flex gap-2">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-              <div className="space-y-1 text-sm text-amber-800">
-                <p className="font-medium">接続に必要なもの</p>
-                <ul className="ml-1 list-inside list-disc space-y-0.5 text-xs">
-                  <li>Apple IDのメールアドレス</li>
-                  <li>
-                    <a
-                      href="https://appleid.apple.com"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline"
-                    >
-                      appleid.apple.com
-                    </a>
-                    で生成したアプリ用パスワード
-                  </li>
-                  <li>2ファクタ認証が有効なApple ID</li>
-                </ul>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
-  );
-}
-
-// -----------------------------------------------
-// 接続ダイアログ
-// -----------------------------------------------
-
-interface ConnectDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onConnected: (auth: CalendarAuth) => void;
-}
-
-function ConnectDialog({ open, onOpenChange, onConnected }: ConnectDialogProps) {
-  const [username, setUsername] = useState('');
-  const [appPassword, setAppPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!username.trim() || !appPassword.trim()) return;
-
-      setIsSubmitting(true);
-      try {
-        const auth = saveCalendarAuth(username.trim(), appPassword.trim());
-        onConnected(auth);
-        onOpenChange(false);
-        setUsername('');
-        setAppPassword('');
-        toast.success('Apple Calendarに接続しました');
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : '接続に失敗しました');
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [username, appPassword, onConnected, onOpenChange]
-  );
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogTrigger asChild>
-        <Button>
-          <Calendar className="mr-1.5 h-4 w-4" />
-          カレンダーに接続
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Apple Calendarに接続</DialogTitle>
-          <DialogDescription>Apple IDとアプリ用パスワードを入力してください</DialogDescription>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Apple ID（メールアドレス）</Label>
-            <Input
-              id="username"
-              type="email"
-              placeholder="example@icloud.com"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="appPassword">アプリ用パスワード</Label>
-            <Input
-              id="appPassword"
-              type="password"
-              placeholder="xxxx-xxxx-xxxx-xxxx"
-              value={appPassword}
-              onChange={(e) => setAppPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-            <p className="text-muted-foreground text-xs">
-              Apple IDの管理画面で生成したアプリ用パスワードを入力してください
-            </p>
-          </div>
-
-          <div className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">
-            <p className="font-medium">⚠️ セキュリティに関するご注意</p>
-            <p className="mt-1">
-              入力された認証情報はこのデバイスのみに保存されます。 アプリ用パスワードはApple
-              IDの設定から生成できます。
-            </p>
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isSubmitting}
-            >
-              キャンセル
-            </Button>
-            <Button
-              type="submit"
-              disabled={!username.trim() || !appPassword.trim() || isSubmitting}
-            >
-              {isSubmitting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-              接続
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }

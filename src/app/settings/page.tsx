@@ -1,5 +1,6 @@
 'use client';
 
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -13,21 +14,40 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { useCalendarStore } from '@/store/useCalendarStore';
 import { useLocationStore } from '@/store/useLocationStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
-import { Download, Upload } from 'lucide-react';
-import { useEffect } from 'react';
+import { format } from 'date-fns';
+import { ja } from 'date-fns/locale';
+import { Calendar, Download, Trash2, Upload } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 
 export default function SettingsPage() {
   const { settings, isLoading, loadSettings, updateSettings, initializeSettings } =
     useSettingsStore();
   const { locations, loadLocations } = useLocationStore();
+  const { calendarEvents, loadCalendarEvents, clearEvents } = useCalendarStore();
 
   useEffect(() => {
     loadSettings();
     loadLocations();
-  }, [loadSettings, loadLocations]);
+    loadCalendarEvents();
+  }, [loadSettings, loadLocations, loadCalendarEvents]);
+
+  // 日付ごとにグループ化（直近10日分のみ表示）
+  const eventsByDate = useMemo(() => {
+    const groups = new Map<string, typeof calendarEvents>();
+    for (const event of calendarEvents) {
+      const dateKey = event.startTime.slice(0, 10); // YYYY-MM-DD
+      if (!groups.has(dateKey)) groups.set(dateKey, []);
+      groups.get(dateKey)!.push(event);
+    }
+    // 日付昇順でソート
+    return Array.from(groups.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(0, 10);
+  }, [calendarEvents]);
 
   // 設定が未初期化で場所が存在する場合、最初の場所でデフォルト設定を初期化
   useEffect(() => {
@@ -289,6 +309,97 @@ export default function SettingsPage() {
               パターン・場所・習慣項目などすべてのデータが削除されます
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* -------- カレンダーデータ -------- */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <CardTitle className="text-base">インポート済みカレンダー</CardTitle>
+            <Badge variant="secondary" className="ml-auto text-xs">
+              {calendarEvents.length}件
+            </Badge>
+          </div>
+          <CardDescription>
+            .ics
+            ファイルからインポートされたイベントの一覧です。ホームのスケジュールに反映されます。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {calendarEvents.length === 0 ? (
+            <p className="text-muted-foreground py-4 text-center text-sm">
+              インポートされたイベントはありません
+              <br />
+              <span className="text-xs">
+                カレンダー連携ページから .ics ファイルをインポートしてください
+              </span>
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {eventsByDate.map(([dateKey, events]) => (
+                <div key={dateKey}>
+                  <p className="text-muted-foreground mb-1 text-xs font-medium">
+                    {format(new Date(dateKey + 'T00:00:00'), 'M月d日(E)', { locale: ja })}
+                    <span className="ml-1">({events.length}件)</span>
+                  </p>
+                  <div className="space-y-1">
+                    {events
+                      .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                      .map((event) => (
+                        <div
+                          key={event.id}
+                          className="flex items-center justify-between rounded-md bg-gray-50 px-3 py-1.5 text-sm"
+                        >
+                          <div className="min-w-0">
+                            <span className="font-medium">{event.title}</span>
+                            {event.isAllDay ? (
+                              <Badge variant="outline" className="ml-2 px-1.5 py-0 text-xs">
+                                終日
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground ml-2 text-xs">
+                                {event.startTime.slice(11, 16)} – {event.endTime.slice(11, 16)}
+                              </span>
+                            )}
+                            {event.locationName && (
+                              <span className="text-muted-foreground ml-2 text-xs">
+                                📍 {event.locationName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              ))}
+              {calendarEvents.length > 0 && (
+                <>
+                  {eventsByDate.length <
+                    new Set(calendarEvents.map((e) => e.startTime.slice(0, 10))).size && (
+                    <p className="text-muted-foreground text-center text-xs">
+                      ※ 直近10日分を表示（全 {calendarEvents.length} 件）
+                    </p>
+                  )}
+                  <Separator />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive w-full"
+                    onClick={() => {
+                      if (!confirm('インポートしたカレンダーデータをすべて削除しますか？')) return;
+                      clearEvents();
+                      toast.success('カレンダーデータを削除しました');
+                    }}
+                  >
+                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                    カレンダーデータをすべて削除
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

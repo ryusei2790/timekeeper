@@ -1,57 +1,28 @@
-import { fetchEvents } from './caldav';
 import { calendarEventService } from '@/lib/data/calendarEvents';
 import { settingsService } from '@/lib/data/settings';
-import type { CalendarAuth, CalendarEvent } from '@/types';
+import type { CalendarEvent } from '@/types';
 
 // -----------------------------------------------
-// 同期範囲の設定
-// -----------------------------------------------
-
-/** 同期対象の前後日数（今日を基準に前後何日分を取得するか） */
-const SYNC_RANGE_DAYS_BEFORE = 1;
-const SYNC_RANGE_DAYS_AFTER = 14;
-
-// -----------------------------------------------
-// 同期処理
+// インポート処理
 // -----------------------------------------------
 
 /**
- * CalDAV からイベントを取得して LocalStorage に保存する
+ * パース済みイベントを LocalStorage に保存する（差分計算あり）
  *
  * - 既存イベントとの差分を計算し、追加・更新・削除を反映する
- * - 同期成功後は Settings の lastSyncAt を更新する
+ * - インポート成功後は Settings の lastSyncAt を更新する
  *
- * @param auth CalDAV 認証情報
- * @returns 同期結果サマリー
- * @throws CalDAV 通信エラーの場合
+ * @param events .ics からパースしたイベント
+ * @returns インポート結果サマリー
  */
-export async function syncCalendarEvents(auth: CalendarAuth): Promise<SyncResult> {
-  const now = new Date();
-  const startDate = new Date(now);
-  startDate.setDate(startDate.getDate() - SYNC_RANGE_DAYS_BEFORE);
-  startDate.setHours(0, 0, 0, 0);
-
-  const endDate = new Date(now);
-  endDate.setDate(endDate.getDate() + SYNC_RANGE_DAYS_AFTER);
-  endDate.setHours(23, 59, 59, 999);
-
-  // CalDAV からイベントを取得
-  const fetchedEvents = await fetchEvents(auth, startDate, endDate);
-
-  // 差分計算と保存
-  const result = applyEventDiff(fetchedEvents);
-
-  // 最終同期日時を Settings に記録
-  updateLastSyncAt(now.toISOString());
-
+export function importCalendarEvents(events: CalendarEvent[]): SyncResult {
+  const result = applyEventDiff(events);
+  updateLastSyncAt(new Date().toISOString());
   return result;
 }
 
 /**
  * 取得したイベントと既存イベントの差分を計算し LocalStorage に反映する
- *
- * @param fetchedEvents CalDAV から取得したイベント
- * @returns 同期結果サマリー
  */
 function applyEventDiff(fetchedEvents: CalendarEvent[]): SyncResult {
   const existing = calendarEventService.getAll();
@@ -69,7 +40,7 @@ function applyEventDiff(fetchedEvents: CalendarEvent[]): SyncResult {
     if (!old) {
       added++;
       toUpsert.push(event);
-    } else if (old.syncedAt !== event.syncedAt || hasEventChanged(old, event)) {
+    } else if (hasEventChanged(old, event)) {
       updated++;
       toUpsert.push(event);
     }
@@ -79,12 +50,12 @@ function applyEventDiff(fetchedEvents: CalendarEvent[]): SyncResult {
     calendarEventService.upsertMany(toUpsert);
   }
 
-  // 削除（同期範囲内で取得されなかったイベントを除去）
+  // 削除（ics-import カレンダーで今回取得されなかったイベントを除去）
   const toKeep = existing.filter((event) => {
     if (fetchedMap.has(event.id)) return true; // 今回取得済み → 残す
-    if (!isEventInSyncRange(event)) return true; // 範囲外 → 削除しない
+    if (event.calendarId !== 'ics-import') return true; // 他カレンダー → 触らない
     deleted++;
-    return false; // 範囲内で消えた → 削除
+    return false; // ics-import で消えた → 削除
   });
 
   if (deleted > 0) {
@@ -109,21 +80,6 @@ function hasEventChanged(a: CalendarEvent, b: CalendarEvent): boolean {
 }
 
 /**
- * イベントが同期範囲内かどうかを判定する
- */
-function isEventInSyncRange(event: CalendarEvent): boolean {
-  const now = new Date();
-  const start = new Date(now);
-  start.setDate(start.getDate() - SYNC_RANGE_DAYS_BEFORE);
-
-  const end = new Date(now);
-  end.setDate(end.getDate() + SYNC_RANGE_DAYS_AFTER);
-
-  const eventStart = new Date(event.startTime);
-  return eventStart >= start && eventStart <= end;
-}
-
-/**
  * Settings の calendarSync.lastSyncAt を更新する
  */
 function updateLastSyncAt(syncedAt: string): void {
@@ -138,7 +94,7 @@ function updateLastSyncAt(syncedAt: string): void {
       },
     });
   } catch {
-    // Settings 更新失敗は同期失敗扱いにしない
+    // Settings 更新失敗はインポート失敗扱いにしない
   }
 }
 
@@ -147,7 +103,7 @@ function updateLastSyncAt(syncedAt: string): void {
 // -----------------------------------------------
 
 /**
- * 同期処理の結果サマリー
+ * インポート処理の結果サマリー
  */
 export interface SyncResult {
   /** 新規追加されたイベント数 */

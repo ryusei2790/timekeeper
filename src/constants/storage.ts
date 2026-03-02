@@ -10,7 +10,6 @@ export const STORAGE_KEYS = {
   calendarEvents: 'timekeeper_calendar_events',
   dailyStates: 'timekeeper_daily_states',
   settings: 'timekeeper_settings',
-  calendarAuth: 'timekeeper_calendar_auth',
   version: 'timekeeper_version',
 } as const;
 

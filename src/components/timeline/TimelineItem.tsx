@@ -133,8 +133,8 @@ export function TimelineItem({ item, currentTime, onComplete, onSkip }: Timeline
             </div>
           </div>
 
-          {/* アクションボタン（activeの場合のみ表示） */}
-          {isActive && (
+          {/* アクションボタン（active または pending の場合に表示） */}
+          {(isActive || item.status === 'pending') && (
             <div className="flex shrink-0 gap-1">
               {onSkip && (
                 <Button
@@ -149,7 +149,10 @@ export function TimelineItem({ item, currentTime, onComplete, onSkip }: Timeline
               {onComplete && (
                 <Button
                   size="sm"
-                  className="h-7 bg-blue-600 px-2 text-xs hover:bg-blue-700"
+                  className={cn(
+                    'h-7 px-2 text-xs',
+                    isActive ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-500 hover:bg-gray-600'
+                  )}
                   onClick={() => onComplete(item.id)}
                 >
                   <Check className="mr-1 h-3 w-3" />
@@ -157,11 +160,6 @@ export function TimelineItem({ item, currentTime, onComplete, onSkip }: Timeline
                 </Button>
               )}
             </div>
-          )}
-
-          {/* pending かつ将来のアイテムにはシェブロン */}
-          {item.status === 'pending' && !isDelayed && (
-            <ChevronRight className="text-muted-foreground/40 h-4 w-4 shrink-0" />
           )}
         </div>
       </div>
