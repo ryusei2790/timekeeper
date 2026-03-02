@@ -478,69 +478,81 @@ export function skipEvent(
 
 ---
 
-## Phase 5: カレンダー連携（2-3週間）
+## Phase 5: カレンダー連携
 
-### 目標
-Apple Calendar（CalDAV）との連携機能を実装
+### Phase 5a: .ics ファイルインポート ✅ 完了
 
-### タスク
+#### 実装済みファイル
+- `src/lib/calendar/ics.ts` — .ics パーサー（`parseIcsText(text): CalendarEvent[]`）
+- `src/lib/calendar/sync.ts` — 差分保存（`importCalendarEvents(events): SyncResult`）
+- `src/app/calendar/page.tsx` — ファイルアップロード UI
+- `src/app/settings/page.tsx` — インポート済みイベント確認カード（日付グループ表示・削除ボタン）
 
-#### 1. CalDAV認証（`src/lib/calendar/auth.ts`）
-- [ ] 認証フロー実装
-  - [ ] Apple IDログイン
-  - [ ] App専用パスワード対応
-  - [ ] トークン保存（暗号化）
-- [ ] 認証状態管理
-- [ ] トークン更新
+#### 動作
+1. ユーザーが .ics ファイルを選択
+2. FileReader API でテキスト読み込み
+3. `parseIcsText` で VEVENT ブロックを CalendarEvent 配列に変換
+4. `importCalendarEvents` で LocalStorage に差分保存
+5. ホーム画面のスケジュール生成に自動反映（`calendarId: 'ics-import'`）
 
-**使用ライブラリ**: `tsdav`
+---
 
-#### 2. カレンダー操作（`src/lib/calendar/caldav.ts`）
-- [ ] カレンダー一覧取得
-- [ ] イベント取得
-  - [ ] 日付範囲指定
-  - [ ] フィルタリング
-- [ ] イベントパース
-  - [ ] iCalendar形式のパース
-  - [ ] CalendarEventへの変換
+### Phase 5b: Google カレンダーリアルタイム同期（将来：v2）
 
-#### 3. 同期処理（`src/lib/calendar/sync.ts`）
-- [ ] 手動同期
-- [ ] 自動同期（定期実行）
-- [ ] 差分更新
-- [ ] 同期履歴管理
+#### 目標
+Google Calendar REST API v3 + OAuth 2.0 によるリアルタイム同期を実装
 
-#### 4. カレンダー連携画面（`src/app/calendar/`）
-- [ ] 認証状態表示
-- [ ] 接続/解除ボタン
+#### タスク
+
+##### 1. Google Cloud Console 設定
+- [ ] プロジェクト作成
+- [ ] Google Calendar API を有効化
+- [ ] OAuth 2.0 認証情報作成（Web アプリケーション）
+- [ ] リダイレクト URI 登録（`https://<app-url>/api/google/callback`）
+
+##### 2. 環境変数設定
+```env
+GOOGLE_CLIENT_ID=xxx
+GOOGLE_CLIENT_SECRET=xxx
+NEXTAUTH_SECRET=xxx   # state 検証用ランダム値
+```
+
+##### 3. OAuth フロー実装（Next.js Route Handler）
+- [ ] `src/app/api/google/auth/route.ts`
+  - Google 認証ページへのリダイレクト URL 生成
+  - state パラメータを LocalStorage に保存（CSRF 対策）
+- [ ] `src/app/api/google/callback/route.ts`
+  - 認可コードをアクセストークンに交換
+  - アクセストークン・リフレッシュトークンを LocalStorage に保存
+
+##### 4. `src/lib/calendar/google.ts` 新規作成
+```ts
+export async function fetchGoogleEvents(
+  accessToken: string,
+  syncToken?: string
+): Promise<{ events: CalendarEvent[]; nextSyncToken: string }>
+```
+- Google Event → CalendarEvent 型変換
+  - `summary` → `title`
+  - `start.dateTime` または `start.date` → `startTime`（ISO 8601）
+  - `start.date` のみ存在 → `isAllDay: true`
+  - `calendarId: 'google-calendar'`（固定）
+- `syncToken` で差分同期（初回は全件取得）
+- アクセストークン期限切れ時にリフレッシュトークンで更新
+
+##### 5. `src/lib/calendar/sync.ts` 更新
+- [ ] `syncGoogleCalendar(accessToken, syncToken?): SyncResult` 追加
+- [ ] syncToken を LocalStorage（`timekeeper_google_sync_token`）に保存・読み込み
+
+##### 6. `src/app/calendar/page.tsx` 更新
+- [ ] タブ構成に変更：「.ics インポート」タブ + 「Google カレンダー」タブ
+- [ ] Google 連携タブ：接続状態・最終同期日時・手動同期ボタン
+
+**成果物（v2）**:
+- [ ] Google OAuth 2.0 認証
+- [ ] 差分同期（syncToken）
 - [ ] 手動同期ボタン
-- [ ] 同期設定
-  - [ ] 自動同期ON/OFF
-  - [ ] 同期間隔設定
-  - [ ] 取得オプション
-- [ ] 同期履歴表示
-
-#### 5. 認証モーダル（`src/components/calendar/`）
-- [ ] AuthDialog
-  - [ ] Apple IDフォーム
-  - [ ] エラー表示
-  - [ ] ローディング状態
-
-#### 6. エラーハンドリング
-- [ ] 認証エラー
-- [ ] ネットワークエラー
-- [ ] パースエラー
-- [ ] ユーザーへのエラー通知
-
-**注意事項**:
-- CalDAVの実装は複雑なため、時間に余裕を持つ
-- 必要に応じてフォールバック（.icsインポート）を実装
-
-**成果物**:
-- ✅ Apple Calendar認証
-- ✅ イベント同期
-- ✅ 自動/手動同期
-- ✅ カレンダー連携画面
+- [ ] カレンダー連携画面（2 タブ構成）
 
 ---
 
@@ -600,7 +612,8 @@ Apple Calendar（CalDAV）との連携機能を実装
 | Phase 2: コアロジック | 1-2週間 | 3-4週間 |
 | Phase 3: 基本UI | 2週間 | 5-6週間 |
 | Phase 4: ホーム画面 | 2週間 | 7-8週間 |
-| Phase 5: カレンダー連携 | 2-3週間 | 9-11週間 |
+| Phase 5a: .ics インポート（✅完了） | 0週間 | 8週間 |
+| Phase 5b: Google カレンダー連携（v2） | 2-3週間 | 10-11週間 |
 | Phase 6: 仕上げ | 1週間 | 10-12週間 |
 
 **合計: 約2.5-3ヶ月**
@@ -609,11 +622,11 @@ Apple Calendar（CalDAV）との連携機能を実装
 
 ## リスクと対策
 
-### リスク1: CalDAV実装の複雑さ
+### リスク1: Google Calendar OAuth の複雑さ
 **対策**:
-- まず.icsインポートで代替実装
-- ライブラリ（tsdav）の使用
-- 必要に応じてGoogle Calendar APIへの変更
+- MVP では .ics ファイルインポートで対応済み（Phase 5a 完了）
+- v2 で OAuth フローを Route Handler で安全に実装
+- アクセストークン管理は Supabase セッションに統合
 
 ### リスク2: スケジュール生成ロジックの複雑さ
 **対策**:
@@ -674,7 +687,7 @@ main           # 本番環境
 - [ ] ダークモード
 
 ### 優先度中
-- [ ] Google Calendar対応
+- [ ] Google Calendar リアルタイム同期（OAuth 2.0 + REST API v3）→ Phase 5b
 - [ ] データ分析・レポート
 - [ ] AI最適化提案
 - [ ] ウィジェット機能

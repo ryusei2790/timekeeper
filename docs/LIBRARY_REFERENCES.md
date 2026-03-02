@@ -226,40 +226,70 @@ parse('14:30', 'HH:mm', new Date())
 
 ## Calendar Integration
 
-### tsdav (CalDAV Client)
-- **GitHub**: https://github.com/natelindev/tsdav
-- **npm**: https://www.npmjs.com/package/tsdav
+### .ics ファイルパーサー（MVP ✅）
+- **RFC 5545（iCalendar）仕様**: https://datatracker.ietf.org/doc/html/rfc5545
+- **実装ファイル**: `src/lib/calendar/ics.ts`
 
-**重要な機能**:
-- DAVClient作成
-- カレンダー取得
-- イベント取得
-- 認証
-
-**基本的な使い方**:
+**自前パーサーの仕様**:
 ```typescript
-import { DAVClient } from 'tsdav'
+// .ics テキストを CalendarEvent[] に変換
+export function parseIcsText(text: string): CalendarEvent[]
 
-const client = new DAVClient({
-  serverUrl: 'https://caldav.icloud.com',
-  credentials: {
-    username: 'user@icloud.com',
-    password: 'app-specific-password',
-  },
-  authMethod: 'Basic',
-  defaultAccountType: 'caldav',
-})
-
-await client.login()
-const calendars = await client.fetchCalendars()
-const events = await client.fetchCalendarObjects({
-  calendar: calendars[0],
-})
+// 対応フィールド: UID, SUMMARY, DTSTART, DTEND, LOCATION, DESCRIPTION
+// 日時形式: UTC (Z suffix) / ローカル / 終日 (VALUE=DATE)
+// calendarId: 'ics-import' 固定
 ```
 
-### Apple Calendar CalDAV
-- **iCloud CalDAV**: `https://caldav.icloud.com`
-- **App専用パスワード**: https://support.apple.com/ja-jp/HT204397
+**対応カレンダーアプリ**:
+- TimeTree（.ics エクスポート）
+- Google Calendar（設定 → カレンダーをエクスポート）
+- Apple Calendar（ファイル → 書き出し）
+
+---
+
+### Google Calendar API（将来：v2）
+- **公式ドキュメント**: https://developers.google.com/calendar/api/guides/overview
+- **Events リソース**: https://developers.google.com/calendar/api/v3/reference/events
+- **OAuth 2.0**: https://developers.google.com/identity/protocols/oauth2/web-server
+
+**主要パラメータ（events.list）**:
+
+| パラメータ | 説明 |
+|---|---|
+| `calendarId` | `primary` でプライマリカレンダー |
+| `timeMin` / `timeMax` | RFC3339 形式で取得範囲を指定 |
+| `singleEvents` | `true` で定期イベントを展開 |
+| `syncToken` | 差分同期用トークン（前回レスポンスから取得） |
+| `maxResults` | 最大 2500 件 |
+
+**型マッピング（Google Event → CalendarEvent）**:
+
+| Google API フィールド | CalendarEvent フィールド |
+|---|---|
+| `id` | `id` |
+| `summary` | `title` |
+| `start.dateTime` または `start.date` | `startTime`（ISO 8601） |
+| `end.dateTime` または `end.date` | `endTime`（ISO 8601） |
+| `location` | `locationName` |
+| `description` | `description` |
+| `start.date` のみ存在（dateTime なし） | `isAllDay: true` |
+| 固定値 `'google-calendar'` | `calendarId` |
+
+**OAuth 2.0 フロー（Next.js Route Handler）**:
+```typescript
+// /api/google/auth/route.ts
+// → GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET を環境変数から取得
+// → https://accounts.google.com/o/oauth2/v2/auth へリダイレクト
+
+// /api/google/callback/route.ts
+// → 認可コードを受け取り https://oauth2.googleapis.com/token でトークン交換
+// → アクセストークン・リフレッシュトークン・syncToken を LocalStorage に保存
+```
+
+**セキュリティ注意事項**:
+- `GOOGLE_CLIENT_SECRET` はサーバーサイド（Route Handler）でのみ使用
+- アクセストークン有効期限は 1 時間。リフレッシュトークンで更新が必要
+- 本番環境では HTTPS 必須（OAuth リダイレクト URI の制約）
 
 ---
 
@@ -432,8 +462,7 @@ npx shadcn-ui@latest add [component-name]
   "zustand": "^4.4.0",
   "react-hook-form": "^7.48.0",
   "zod": "^3.22.0",
-  "date-fns": "^3.0.0",
-  "tsdav": "^2.0.0"
+  "date-fns": "^3.0.0"
 }
 ```
 
@@ -443,4 +472,5 @@ npx shadcn-ui@latest add [component-name]
 
 ## 更新履歴
 
+- 2026-03-02: tsdav 削除、.ics パーサー追加、Google Calendar API（将来 v2）セクション追加
 - 2026-03-01: 初版作成

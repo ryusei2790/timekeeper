@@ -64,18 +64,25 @@
 
 ## 外部API連携
 
-### Apple Calendar連携
-- **CalDAV API**
-  - iCloud CalDAVエンドポイント
-  - OAuth認証
-  - イベントのCRUD操作
+### カレンダーデータ取り込み（MVP ✅）
+- **.ics（iCalendar RFC 5545）ファイルのブラウザ内パース**
+  - FileReader API でファイル読み込み
+  - 自前パーサー（`src/lib/calendar/ics.ts`）
+  - ライブラリ不使用（tsdav は削除済み）
+  - 対応アプリ：TimeTree、Google Calendar、Apple Calendar など
 
-**ライブラリ候補**:
-- `tsdav` - TypeScript CalDAVクライアント
-- 自前実装（axios + XMLパース）
+### Google Calendar API 連携（将来：v2）
+- **Google Calendar REST API v3**
+  - 認証：OAuth 2.0 Authorization Code Flow
+  - スコープ：`https://www.googleapis.com/auth/calendar.readonly`
+  - 主要エンドポイント：`GET /calendar/v3/calendars/primary/events`
+  - 差分同期：`syncToken` パラメータ（初回全件取得→以降差分のみ）
+- **実装方針（v2）**：
+  - OAuth フロー：Next.js Route Handler（`/api/google/auth`, `/api/google/callback`）で処理
+  - Client ID / Secret：Vercel 環境変数（`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`）
+  - アクセストークン：LocalStorage → v2 では Supabase セッション管理に移行
 
 ### 将来の拡張
-- **Google Calendar API**
 - **Google Maps API**（移動時間計算）
 
 ## デプロイ・インフラ
@@ -183,7 +190,6 @@ timekeeper/
   "react-hook-form": "^7.48.0",
   "zod": "^3.22.0",
   "date-fns": "^3.0.0",
-  "tsdav": "^2.0.0",
   "lucide-react": "^0.300.0",
   "@radix-ui/react-*": "latest",
   "tailwindcss": "^3.4.0",
