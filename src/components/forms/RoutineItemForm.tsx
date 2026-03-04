@@ -28,6 +28,7 @@ import { Switch } from '@/components/ui/switch';
 import { CreateRoutineItemSchema, type RoutineItemFormValues } from '@/lib/validations/schemas';
 import type { Location, RoutineItem } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 interface RoutineItemFormProps {
@@ -58,7 +59,6 @@ export function RoutineItemForm({
     defaultValues: defaultValues
       ? {
           name: defaultValues.name,
-          startTime: defaultValues.startTime,
           duration: defaultValues.duration,
           locationId: defaultValues.locationId,
           icon: defaultValues.icon ?? '',
@@ -67,7 +67,6 @@ export function RoutineItemForm({
         }
       : {
           name: '',
-          startTime: '07:00',
           duration: 30,
           locationId: null,
           icon: '',
@@ -75,6 +74,30 @@ export function RoutineItemForm({
           priority: 3,
         },
   });
+
+  useEffect(() => {
+    if (open) {
+      form.reset(
+        defaultValues
+          ? {
+              name: defaultValues.name,
+              duration: defaultValues.duration,
+              locationId: defaultValues.locationId,
+              icon: defaultValues.icon ?? '',
+              isFlexible: defaultValues.isFlexible,
+              priority: defaultValues.priority,
+            }
+          : {
+              name: '',
+              duration: 30,
+              locationId: null,
+              icon: '',
+              isFlexible: true,
+              priority: 3,
+            }
+      );
+    }
+  }, [open, defaultValues]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSubmit(data: RoutineItemFormValues) {
     onSubmit(data);
@@ -121,43 +144,26 @@ export function RoutineItemForm({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              {/* 開始時刻 */}
-              <FormField
-                control={form.control}
-                name="startTime"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>開始時刻</FormLabel>
-                    <FormControl>
-                      <Input type="time" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* 所要時間 */}
-              <FormField
-                control={form.control}
-                name="duration"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>所要時間（分）</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={1440}
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            {/* 所要時間 */}
+            <FormField
+              control={form.control}
+              name="duration"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>所要時間（分）</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={1440}
+                      {...field}
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* 場所 */}
             <FormField

@@ -3,8 +3,8 @@
 ## フロントエンド
 
 ### フレームワーク
-- **Next.js 14+** (App Router)
-  - React 18+
+- **Next.js 16+** (App Router)
+  - React 19+
   - TypeScript 5+
   - サーバーコンポーネントとクライアントコンポーネントの使い分け
 
@@ -110,8 +110,8 @@
 ## 開発ツール
 
 ### パッケージマネージャー
-- **npm** または **pnpm**（推奨）
-  - pnpmの方が高速・省ストレージ
+- **pnpm**
+  - npmより高速・省ストレージ
 
 ### コード品質
 - **ESLint**
@@ -136,10 +136,12 @@
 - **lint-staged**
   - ステージングファイルのみlint
 
-### テスト（将来対応）
-- **Jest**
-- **React Testing Library**
-- **Playwright**（E2Eテスト）
+### テスト
+- **Vitest** ✅ 導入済み
+  - 43件のユニットテスト PASS
+  - `src/test/` 配下（factories.ts + 各テストファイル）
+- **React Testing Library**（将来対応）
+- **Playwright**（E2Eテスト、将来対応）
 
 ## プロジェクト構成
 
@@ -182,20 +184,20 @@ timekeeper/
 ### プロダクション依存
 ```json
 {
-  "next": "^14.0.0",
-  "react": "^18.2.0",
-  "react-dom": "^18.2.0",
+  "next": "^16.1.6",
+  "react": "^19.2.3",
+  "react-dom": "^19.2.3",
   "typescript": "^5.0.0",
-  "zustand": "^4.4.0",
-  "react-hook-form": "^7.48.0",
-  "zod": "^3.22.0",
-  "date-fns": "^3.0.0",
-  "lucide-react": "^0.300.0",
+  "zustand": "^5.0.11",
+  "react-hook-form": "^7.54.2",
+  "zod": "^4.3.6",
+  "date-fns": "^4.1.0",
+  "lucide-react": "^0.475.0",
   "@radix-ui/react-*": "latest",
-  "tailwindcss": "^3.4.0",
+  "tailwindcss": "^4.0.0",
   "class-variance-authority": "^0.7.0",
   "clsx": "^2.0.0",
-  "tailwind-merge": "^2.2.0"
+  "tailwind-merge": "^2.6.0"
 }
 ```
 
@@ -203,14 +205,16 @@ timekeeper/
 ```json
 {
   "@types/node": "^20.0.0",
-  "@types/react": "^18.2.0",
-  "@types/react-dom": "^18.2.0",
-  "eslint": "^8.0.0",
-  "eslint-config-next": "^14.0.0",
+  "@types/react": "^19.0.0",
+  "@types/react-dom": "^19.0.0",
+  "eslint": "^9.0.0",
+  "eslint-config-next": "^16.1.6",
   "prettier": "^3.0.0",
-  "prettier-plugin-tailwindcss": "^0.5.0",
-  "husky": "^8.0.0",
-  "lint-staged": "^15.0.0"
+  "prettier-plugin-tailwindcss": "^0.6.0",
+  "husky": "^9.0.0",
+  "lint-staged": "^15.0.0",
+  "vitest": "^3.0.0",
+  "@vitest/coverage-v8": "^3.0.0"
 }
 ```
 
@@ -274,8 +278,8 @@ timekeeper/
 ## 開発環境セットアップ
 
 ### 前提条件
-- Node.js 18+ (LTS推奨)
-- npm 9+ または pnpm 8+
+- Node.js 20+ (LTS推奨)
+- pnpm 9+
 - Git
 
 ### セットアップ手順
@@ -317,6 +321,9 @@ pnpm format
 
 # 型チェック
 pnpm type-check
+
+# テスト実行
+pnpm test
 ```
 
 ## 今後の技術的検討事項

@@ -15,7 +15,7 @@ const TODAY = new Date('2026-03-01T00:00:00');
 function baseInput() {
   const home = makeLocation({ id: 'loc-home', name: '自宅' });
   const settings = makeSettings({ defaultLocationId: home.id });
-  const pattern = makePattern({ routineItemIds: [] });
+  const pattern = makePattern({ patternItems: [] });
   return { home, settings, pattern };
 }
 
@@ -37,15 +37,15 @@ describe('generateDailySchedule', () => {
 
   it('パターンに含まれる RoutineItem のみがスケジュールに追加される', () => {
     const { settings } = baseInput();
-    const item1 = makeRoutineItem({ id: 'ri-1', name: '朝食', startTime: '07:00', duration: 30 });
-    const item2 = makeRoutineItem({ id: 'ri-2', name: '運動', startTime: '08:00', duration: 60 });
-    const itemOther = makeRoutineItem({
-      id: 'ri-other',
-      name: '別パターンの項目',
-      startTime: '09:00',
-      duration: 30,
+    const item1 = makeRoutineItem({ id: 'ri-1', name: '朝食', duration: 30 });
+    const item2 = makeRoutineItem({ id: 'ri-2', name: '運動', duration: 60 });
+    const itemOther = makeRoutineItem({ id: 'ri-other', name: '別パターンの項目', duration: 30 });
+    const pattern = makePattern({
+      patternItems: [
+        { routineItemId: item1.id, startTime: '07:00' },
+        { routineItemId: item2.id, startTime: '08:00' },
+      ],
     });
-    const pattern = makePattern({ routineItemIds: [item1.id, item2.id] });
 
     const result = generateDailySchedule({
       date: TODAY,
@@ -65,9 +65,14 @@ describe('generateDailySchedule', () => {
 
   it('スケジュールが時系列でソートされる', () => {
     const { settings } = baseInput();
-    const item1 = makeRoutineItem({ id: 'ri-1', name: '朝食', startTime: '07:00', duration: 30 });
-    const item2 = makeRoutineItem({ id: 'ri-2', name: '起床', startTime: '06:30', duration: 15 });
-    const pattern = makePattern({ routineItemIds: [item1.id, item2.id] });
+    const item1 = makeRoutineItem({ id: 'ri-1', name: '朝食', duration: 30 });
+    const item2 = makeRoutineItem({ id: 'ri-2', name: '起床', duration: 15 });
+    const pattern = makePattern({
+      patternItems: [
+        { routineItemId: item1.id, startTime: '07:00' },
+        { routineItemId: item2.id, startTime: '06:30' },
+      ],
+    });
 
     const result = generateDailySchedule({
       date: TODAY,
@@ -128,14 +133,10 @@ describe('generateDailySchedule', () => {
   it('CalendarEvent（固定）と flexible な RoutineItem が重複した場合は RoutineItem をシフトする', () => {
     const { settings } = baseInput();
     // RoutineItem: 09:30-10:30 (flexible)
-    const item = makeRoutineItem({
-      id: 'ri-1',
-      name: '運動',
-      startTime: '09:30',
-      duration: 60,
-      isFlexible: true,
+    const item = makeRoutineItem({ id: 'ri-1', name: '運動', duration: 60, isFlexible: true });
+    const pattern = makePattern({
+      patternItems: [{ routineItemId: item.id, startTime: '09:30' }],
     });
-    const pattern = makePattern({ routineItemIds: [item.id] });
 
     // CalendarEvent: 10:00-11:00 （固定、重複）
     const event = makeCalendarEvent({
@@ -182,12 +183,13 @@ describe('generateDailySchedule', () => {
     const item = makeRoutineItem({
       id: 'ri-1',
       name: '仕事',
-      startTime: '09:00',
       duration: 60,
       locationId: office.id,
       isFlexible: false,
     });
-    const pattern = makePattern({ routineItemIds: [item.id] });
+    const pattern = makePattern({
+      patternItems: [{ routineItemId: item.id, startTime: '09:00' }],
+    });
 
     const result = generateDailySchedule({
       date: TODAY,

@@ -61,13 +61,12 @@ interface Location {
 
 ### 2. RoutineItem（習慣項目）
 
-生活習慣の各項目
+生活習慣の各項目。「何をするか・何分かかるか」のみを定義し、開始時刻はパターンごとに `PatternRoutineItem` で管理する。
 
 ```typescript
 interface RoutineItem {
   id: string;                    // UUID
   name: string;                  // "朝食", "運動", "勉強"
-  startTime: string;             // "07:30" (HH:mm形式)
   duration: number;              // 30 (分)
   locationId: string | null;     // 場所ID（任意）
   icon?: string;                 // "🍽️" (Emoji)
@@ -81,7 +80,6 @@ interface RoutineItem {
 
 **バリデーション**:
 - `name`: 必須、1-50文字
-- `startTime`: HH:mm形式、00:00-23:59
 - `duration`: 1-1440（分）
 - `priority`: 1-5
 - `color`: HEX色（#RRGGBB）
@@ -91,7 +89,6 @@ interface RoutineItem {
 {
   "id": "550e8400-e29b-41d4-a716-446655440001",
   "name": "朝食",
-  "startTime": "07:30",
   "duration": 30,
   "locationId": "550e8400-e29b-41d4-a716-446655440000",
   "icon": "🍽️",
@@ -105,7 +102,20 @@ interface RoutineItem {
 
 ---
 
-### 3. LifePattern（生活習慣パターン）
+### 3. PatternRoutineItem（パターン内習慣項目）
+
+`LifePattern` と `RoutineItem` の中間型。同一の `RoutineItem` を複数パターンで異なる開始時刻に使い回せる。
+
+```typescript
+interface PatternRoutineItem {
+  routineItemId: string;         // 参照する RoutineItem の ID
+  startTime: string;             // このパターン内での開始時刻（HH:mm形式）
+}
+```
+
+---
+
+### 4. LifePattern（生活習慣パターン）
 
 パターンと適用ルール
 
@@ -114,7 +124,7 @@ interface LifePattern {
   id: string;                    // UUID
   name: string;                  // "平日パターン"
   rules: PatternRule;            // 適用ルール
-  routineItemIds: string[];      // RoutineItemのID配列
+  patternItems: PatternRoutineItem[]; // 習慣項目と開始時刻のリスト
   createdAt: string;             // ISO 8601形式
   updatedAt: string;             // ISO 8601形式
 }
@@ -132,6 +142,7 @@ interface PatternRule {
 - `dayOfWeek`: 0-6の配列
 - `keywords`: 各キーワードは1-50文字
 - `priority`: 1-100
+- `patternItems[].startTime`: HH:mm形式
 
 **例**:
 ```json
@@ -144,9 +155,9 @@ interface PatternRule {
     "isDefault": false,
     "priority": 10
   },
-  "routineItemIds": [
-    "550e8400-e29b-41d4-a716-446655440001",
-    "550e8400-e29b-41d4-a716-446655440003"
+  "patternItems": [
+    { "routineItemId": "550e8400-e29b-41d4-a716-446655440001", "startTime": "07:30" },
+    { "routineItemId": "550e8400-e29b-41d4-a716-446655440003", "startTime": "09:00" }
   ],
   "createdAt": "2026-03-01T00:00:00.000Z",
   "updatedAt": "2026-03-01T00:00:00.000Z"
@@ -155,7 +166,7 @@ interface PatternRule {
 
 ---
 
-### 4. TravelRoute（移動ルート）
+### 5. TravelRoute（移動ルート）
 
 場所間の移動ルート
 
@@ -198,7 +209,7 @@ interface TravelRoute {
 
 ---
 
-### 5. CalendarEvent（カレンダー予定）
+### 6. CalendarEvent（カレンダー予定）
 
 Apple Calendarから取得したイベント
 
@@ -240,7 +251,7 @@ interface CalendarEvent {
 
 ---
 
-### 6. DailyState（日次状態）
+### 7. DailyState（日次状態）
 
 その日のスケジュール実行状態
 
@@ -327,7 +338,7 @@ interface ScheduleItem {
 
 ---
 
-### 7. Settings（設定）
+### 8. Settings（設定）
 
 アプリケーション全体の設定
 
@@ -380,7 +391,7 @@ interface CalendarSyncSettings {
 
 ---
 
-### 8. CalendarAuth（カレンダー認証情報）
+### 9. CalendarAuth（カレンダー認証情報）
 
 Apple Calendar認証情報（セキュアに保存）
 
@@ -416,8 +427,12 @@ Location
 
 RoutineItem
   ↑
-  |--- LifePattern (routineItemIds)
+  |--- PatternRoutineItem (routineItemId)
   |--- ScheduleItem (sourceId)
+
+PatternRoutineItem
+  ↑
+  |--- LifePattern (patternItems)
 
 LifePattern
   ↑
@@ -563,10 +578,14 @@ export const LocationSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
+export const PatternRoutineItemSchema = z.object({
+  routineItemId: z.string().uuid(),
+  startTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/),
+});
+
 export const RoutineItemSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).max(50),
-  startTime: z.string().regex(/^([0-1][0-9]|2[0-3]):[0-5][0-9]$/),
   duration: z.number().min(1).max(1440),
   locationId: z.string().uuid().nullable(),
   icon: z.string().emoji().optional(),

@@ -126,7 +126,7 @@ export default function PatternsPage() {
   const isLoading = pLoading || rLoading;
 
   return (
-    <div className="container max-w-2xl space-y-8 py-6">
+    <div className="container mt-8 ml-8 max-w-2xl space-y-8 py-6">
       {/* ページヘッダー */}
       <div>
         <h1 className="text-2xl font-bold">パターン管理</h1>
@@ -164,7 +164,7 @@ export default function PatternsPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{item.name}</p>
                     <p className="text-muted-foreground text-xs">
-                      {item.startTime} / {item.duration}分{item.isFlexible ? '' : ' · 固定'}
+                      {item.duration}分{item.isFlexible ? '' : ' · 固定'}
                       &nbsp;· 優先度 {item.priority}
                     </p>
                   </div>
@@ -210,7 +210,8 @@ export default function PatternsPage() {
         ) : (
           <div className="space-y-3">
             {patterns.map((pattern) => {
-              const included = routineItems.filter((r) => pattern.routineItemIds.includes(r.id));
+              const includedIds = new Set(pattern.patternItems.map((pi) => pi.routineItemId));
+              const included = routineItems.filter((r) => includedIds.has(r.id));
               return (
                 <Card key={pattern.id} className="group">
                   <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
@@ -241,12 +242,18 @@ export default function PatternsPage() {
                       <p className="text-muted-foreground text-xs">習慣項目なし</p>
                     ) : (
                       <div className="flex flex-wrap gap-1">
-                        {included.map((item) => (
-                          <Badge key={item.id} variant="secondary" className="text-xs">
-                            {item.icon && <span className="mr-1">{item.icon}</span>}
-                            {item.name}
-                          </Badge>
-                        ))}
+                        {included.map((item) => {
+                          const pi = pattern.patternItems.find((p) => p.routineItemId === item.id);
+                          return (
+                            <Badge key={item.id} variant="secondary" className="text-xs">
+                              {item.icon && <span className="mr-1">{item.icon}</span>}
+                              {item.name}
+                              {pi && (
+                                <span className="text-muted-foreground ml-1">{pi.startTime}</span>
+                              )}
+                            </Badge>
+                          );
+                        })}
                       </div>
                     )}
                   </CardContent>

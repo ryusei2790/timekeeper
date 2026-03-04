@@ -33,7 +33,6 @@ export function makeRoutineItem(override: Partial<RoutineItem> = {}): RoutineIte
   return {
     id: nextId(),
     name: '朝食',
-    startTime: '07:00',
     duration: 30,
     locationId: null,
     isFlexible: true,
@@ -54,7 +53,7 @@ export function makePattern(override: Partial<LifePattern> = {}): LifePattern {
       isDefault: false,
       priority: 1,
     },
-    routineItemIds: [],
+    patternItems: [],
     createdAt: NOW,
     updatedAt: NOW,
     ...override,

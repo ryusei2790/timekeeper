@@ -53,7 +53,6 @@ export const CreateLocationSchema = LocationSchema.omit({
 export const RoutineItemSchema = z.object({
   id: uuid,
   name: z.string().min(1, '名前は必須です').max(50, '50文字以内で入力してください'),
-  startTime: timeString,
   duration: z
     .number()
     .min(1, '1分以上を設定してください')
@@ -71,6 +70,15 @@ export const CreateRoutineItemSchema = RoutineItemSchema.omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+// -----------------------------------------------
+// PatternRoutineItem スキーマ
+// -----------------------------------------------
+
+export const PatternRoutineItemSchema = z.object({
+  routineItemId: uuid,
+  startTime: timeString,
 });
 
 // -----------------------------------------------
@@ -92,7 +100,7 @@ export const LifePatternSchema = z.object({
   id: uuid,
   name: z.string().min(1, '名前は必須です').max(50, '50文字以内で入力してください'),
   rules: PatternRuleSchema,
-  routineItemIds: z.array(uuid),
+  patternItems: z.array(PatternRoutineItemSchema),
   createdAt: isoDatetime,
   updatedAt: isoDatetime,
 });

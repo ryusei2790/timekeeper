@@ -1,6 +1,6 @@
 import { patternsStorage } from '@/lib/storage';
 import { generateId, now } from '@/lib/utils/id';
-import type { CreateInput, LifePattern, UpdateInput } from '@/types';
+import type { CreateInput, LifePattern, PatternRoutineItem, UpdateInput } from '@/types';
 
 /**
  * LifePattern エンティティの CRUD サービス
@@ -8,9 +8,31 @@ import type { CreateInput, LifePattern, UpdateInput } from '@/types';
 export const patternService = {
   /**
    * 全てのパターンを取得する
+   * routineItemIds → patternItems の旧フォーマットを自動マイグレーションする
    */
   getAll(): LifePattern[] {
-    return patternsStorage.get() ?? [];
+    const raw = patternsStorage.get() ?? [];
+
+    let needsSave = false;
+    const migrated = raw.map((p) => {
+      const record = p as unknown as Record<string, unknown>;
+      if (Array.isArray(record['routineItemIds']) && !record['patternItems']) {
+        needsSave = true;
+        const patternItems: PatternRoutineItem[] = (record['routineItemIds'] as string[]).map(
+          (id) => ({ routineItemId: id, startTime: '07:00' })
+        );
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { routineItemIds: _removed, ...rest } = record;
+        return { ...rest, patternItems } as LifePattern;
+      }
+      return p;
+    });
+
+    if (needsSave) {
+      patternsStorage.set(migrated);
+    }
+
+    return migrated;
   },
 
   /**

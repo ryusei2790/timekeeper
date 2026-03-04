@@ -30,16 +30,20 @@ export interface GeneratorInput {
 /**
  * RoutineItem から ScheduleItem を生成する
  */
-function routineToScheduleItem(item: RoutineItem, locations: Location[]): ScheduleItem {
-  const endTime = calcEndTime(item.startTime, item.duration);
+function routineToScheduleItem(
+  item: RoutineItem,
+  startTime: string,
+  locations: Location[]
+): ScheduleItem {
+  const endTime = calcEndTime(startTime, item.duration);
   const location = item.locationId ? locations.find((l) => l.id === item.locationId) : undefined;
 
   return {
     id: generateId(),
     title: item.name,
-    originalStartTime: item.startTime,
+    originalStartTime: startTime,
     originalEndTime: endTime,
-    adjustedStartTime: item.startTime,
+    adjustedStartTime: startTime,
     adjustedEndTime: endTime,
     type: 'routine',
     status: 'pending',
@@ -225,10 +229,10 @@ export function generateDailySchedule(
   const currentLocationId = startLocationId ?? settings.defaultLocationId;
 
   // Step 1: パターンの RoutineItem → ScheduleItem
-  const patternItemIds = new Set(pattern.routineItemIds);
+  const patternItemMap = new Map(pattern.patternItems.map((pi) => [pi.routineItemId, pi]));
   const routineScheduleItems = routineItems
-    .filter((item) => patternItemIds.has(item.id))
-    .map((item) => routineToScheduleItem(item, locations));
+    .filter((item) => patternItemMap.has(item.id))
+    .map((item) => routineToScheduleItem(item, patternItemMap.get(item.id)!.startTime, locations));
 
   // Step 2: CalendarEvent → ScheduleItem（当日分のみ）
   const calendarScheduleItems = calendarEvents

@@ -130,7 +130,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container max-w-2xl space-y-6 py-6">
+    <div className="container mt-8 ml-8 max-w-2xl space-y-6 py-6">
       {/* ページヘッダー */}
       <div>
         <h1 className="text-2xl font-bold">設定</h1>

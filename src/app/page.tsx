@@ -44,7 +44,7 @@ export default function HomePage() {
   const currentPattern = patterns.find((p) => p.id === todayState?.patternId);
 
   return (
-    <div className="container max-w-2xl space-y-4 py-4">
+    <div className="container mt-8 ml-8 max-w-2xl space-y-4 py-4">
       {/* ページヘッダー */}
       <div className="flex items-start justify-between">
         <div>

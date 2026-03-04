@@ -12,49 +12,51 @@
 ## Phase 0: プロジェクトセットアップ
 
 ### プロジェクト初期化
-- [ ] Next.jsプロジェクト作成
-- [ ] TypeScript設定確認
-- [ ] TailwindCSS設定確認
-- [ ] App Router動作確認
+- [x] Next.jsプロジェクト作成
+- [x] TypeScript設定確認
+- [x] TailwindCSS設定確認
+- [x] App Router動作確認
 
 ### shadcn/ui セットアップ
-- [ ] shadcn/ui初期化
-- [ ] 必要なコンポーネントインストール
-  - [ ] button
-  - [ ] card
-  - [ ] input
-  - [ ] label
-  - [ ] select
-  - [ ] dialog
-  - [ ] tabs
-  - [ ] badge
-  - [ ] separator
-  - [ ] toast
-  - [ ] dropdown-menu
+- [x] shadcn/ui初期化（canary版）
+- [x] 必要なコンポーネントインストール
+  - [x] button
+  - [x] card
+  - [x] input
+  - [x] label
+  - [x] select
+  - [x] dialog
+  - [x] tabs
+  - [x] badge
+  - [x] separator
+  - [x] toast
+  - [x] dropdown-menu
+  - [x] checkbox
+  - [x] switch
 
 ### 依存パッケージ
-- [ ] zustand インストール
-- [ ] zod インストール
-- [ ] react-hook-form インストール
-- [ ] @hookform/resolvers インストール
-- [ ] date-fns インストール
-- [ ] lucide-react インストール
+- [x] zustand インストール
+- [x] zod インストール
+- [x] react-hook-form インストール
+- [x] @hookform/resolvers インストール
+- [x] date-fns インストール
+- [x] lucide-react インストール
 
 ### プロジェクト構造
-- [ ] src/app ディレクトリ構成
-- [ ] src/components ディレクトリ構成
-- [ ] src/lib ディレクトリ構成
-- [ ] src/hooks ディレクトリ作成
-- [ ] src/store ディレクトリ作成
-- [ ] src/types ディレクトリ作成
-- [ ] src/constants ディレクトリ作成
+- [x] src/app ディレクトリ構成
+- [x] src/components ディレクトリ構成
+- [x] src/lib ディレクトリ構成
+- [x] src/hooks ディレクトリ作成
+- [x] src/store ディレクトリ作成
+- [x] src/types ディレクトリ作成
+- [x] src/constants ディレクトリ作成
 
 ### 開発環境
-- [ ] ESLint設定
-- [ ] Prettier設定
-- [ ] Husky設定
-- [ ] lint-staged設定
-- [ ] .gitignore確認
+- [x] ESLint設定
+- [x] Prettier設定
+- [x] Husky設定
+- [x] lint-staged設定
+- [x] .gitignore確認
 
 ### デプロイ
 - [ ] Vercelプロジェクト作成
@@ -66,294 +68,237 @@
 ## Phase 1: データ層の実装
 
 ### TypeScript型定義（src/types/index.ts）
-- [ ] Location型
-- [ ] RoutineItem型
-- [ ] LifePattern型
-- [ ] PatternRule型
-- [ ] TravelRoute型
-- [ ] TravelMethod型
-- [ ] CalendarEvent型
-- [ ] DailyState型
-- [ ] DelayRecord型
-- [ ] ScheduleItem型
-- [ ] EventStatus型
-- [ ] Settings型
-- [ ] CalendarAuth型
+- [x] Location型
+- [x] RoutineItem型（startTime削除、durationのみ）
+- [x] PatternRoutineItem型（routineItemId + startTime）
+- [x] LifePattern型（patternItems: PatternRoutineItem[]）
+- [x] PatternRule型
+- [x] TravelRoute型
+- [x] TravelMethod型
+- [x] CalendarEvent型
+- [x] DailyState型
+- [x] DelayRecord型
+- [x] ScheduleItem型
+- [x] EventStatus型
+- [x] Settings型
+- [~] CalendarAuth型（CalDAV廃止のためスキップ）
 
 ### Zodバリデーション（src/lib/validations/）
-- [ ] LocationSchema
-- [ ] RoutineItemSchema
-- [ ] LifePatternSchema
-- [ ] PatternRuleSchema
-- [ ] TravelRouteSchema
-- [ ] CalendarEventSchema
-- [ ] DailyStateSchema
-- [ ] SettingsSchema
+- [x] LocationSchema
+- [x] RoutineItemSchema（startTime削除）
+- [x] PatternRoutineItemSchema
+- [x] LifePatternSchema（patternItems対応）
+- [x] PatternRuleSchema
+- [x] TravelRouteSchema
+- [x] CalendarEventSchema
+- [x] DailyStateSchema
+- [x] SettingsSchema
 
 ### LocalStorage操作（src/lib/storage/）
-- [ ] Storage基底クラス
-- [ ] locationsStorage
-- [ ] routineItemsStorage
-- [ ] patternsStorage
-- [ ] travelRoutesStorage
-- [ ] calendarEventsStorage
-- [ ] dailyStatesStorage
-- [ ] settingsStorage
-- [ ] calendarAuthStorage
+- [x] Storage基底クラス
+- [x] locationsStorage
+- [x] routineItemsStorage
+- [x] patternsStorage
+- [x] travelRoutesStorage
+- [x] calendarEventsStorage
+- [x] dailyStatesStorage
+- [x] settingsStorage
+- [~] calendarAuthStorage（CalDAV廃止のためスキップ）
 
 ### データサービス（src/lib/data/）
-- [ ] locationService
-  - [ ] getAll
-  - [ ] getById
-  - [ ] create
-  - [ ] update
-  - [ ] delete
-- [ ] routineItemService
-  - [ ] getAll
-  - [ ] getById
-  - [ ] create
-  - [ ] update
-  - [ ] delete
-- [ ] patternService
-  - [ ] getAll
-  - [ ] getById
-  - [ ] create
-  - [ ] update
-  - [ ] delete
-- [ ] travelRouteService
-  - [ ] getAll
-  - [ ] getById
-  - [ ] findRoute
-  - [ ] findFasterRoutes
-  - [ ] create
-  - [ ] update
-  - [ ] delete
-- [ ] calendarEventService
-  - [ ] getAll
-  - [ ] getByDate
-  - [ ] create
-  - [ ] update
-  - [ ] delete
-- [ ] dailyStateService
-  - [ ] get
-  - [ ] create
-  - [ ] update
-  - [ ] delete
-- [ ] settingsService
-  - [ ] get
-  - [ ] update
+- [x] locationService
+  - [x] getAll
+  - [x] getById
+  - [x] create
+  - [x] update
+  - [x] delete
+- [x] routineItemService
+  - [x] getAll
+  - [x] getById
+  - [x] create
+  - [x] update
+  - [x] delete
+- [x] patternService
+  - [x] getAll（routineItemIds→patternItems自動マイグレーション付き）
+  - [x] getById
+  - [x] getDefault
+  - [x] selectPattern
+  - [x] create
+  - [x] update
+  - [x] delete
+- [x] travelRouteService
+  - [x] getAll
+  - [x] getById
+  - [x] findRoute
+  - [x] findFasterRoutes
+  - [x] create
+  - [x] update
+  - [x] delete
+- [x] calendarEventService
+  - [x] getAll
+  - [x] getByDate
+  - [x] create
+  - [x] update
+  - [x] delete
+- [x] dailyStateService
+  - [x] get
+  - [x] create
+  - [x] update
+  - [x] delete
+- [x] settingsService
+  - [x] get
+  - [x] update
 
 ### Zustand Store（src/store/）
-- [ ] useLocationStore
-- [ ] useRoutineStore
-- [ ] usePatternStore
-- [ ] useTravelRouteStore
-- [ ] useCalendarStore
-- [ ] useDailyStateStore
-- [ ] useSettingsStore
+- [x] useLocationStore
+- [x] useRoutineStore
+- [x] usePatternStore
+- [x] useTravelRouteStore
+- [x] useCalendarStore
+- [x] useDailyStateStore
+- [x] useSettingsStore
 
 ### ユーティリティ（src/lib/utils/）
-- [ ] 時刻操作関数
-  - [ ] parseTime
-  - [ ] formatTime
-  - [ ] addMinutes
-  - [ ] subtractMinutes
-  - [ ] minutesBetween
-- [ ] 日付操作関数
-  - [ ] formatDate
-  - [ ] isToday
-  - [ ] isSameDay
-  - [ ] getDayOfWeek
-- [ ] UUID生成
-- [ ] 配列操作ヘルパー
+- [x] 時刻操作関数
+  - [x] parseTime
+  - [x] formatTime
+  - [x] addMinutes
+  - [x] subtractMinutes
+  - [x] minutesBetween
+- [x] 日付操作関数
+  - [x] formatDate
+  - [x] isToday
+  - [x] isSameDay
+  - [x] getDayOfWeek
+- [x] UUID生成（generateId）
+- [x] now()
 
 ---
 
 ## Phase 2: コアロジックの実装
 
-### パターン選択（src/lib/scheduler/pattern-selector.ts）
-- [ ] selectPattern関数
-- [ ] 曜日マッチング
-- [ ] キーワードマッチング
-- [ ] 優先度判定
-- [ ] デフォルトフォールバック
+### パターン選択（src/lib/data/patterns.ts に統合）
+- [x] selectPattern関数
+- [x] 曜日マッチング
+- [x] キーワードマッチング
+- [x] 優先度判定
+- [x] デフォルトフォールバック
 
 ### 場所マッチング（src/lib/scheduler/location-matcher.ts）
-- [ ] matchLocation関数
-- [ ] 完全一致
-- [ ] エイリアスマッチング
-- [ ] 大文字小文字無視
+- [x] matchLocation関数
+- [x] 完全一致
+- [x] エイリアスマッチング
+- [x] 大文字小文字無視
 
 ### スケジュール生成（src/lib/scheduler/generator.ts）
-- [ ] generateDailySchedule関数
-- [ ] 習慣項目→ScheduleItem変換
-- [ ] カレンダー予定→ScheduleItem変換
-- [ ] 時系列マージ
-- [ ] 現在地追跡ロジック
-- [ ] 移動イベント挿入
-- [ ] 衝突検出
-- [ ] 衝突解決（習慣スキップ）
+- [x] generateDailySchedule関数
+- [x] 習慣項目→ScheduleItem変換（PatternRoutineItem.startTime使用）
+- [x] カレンダー予定→ScheduleItem変換
+- [x] 時系列マージ
+- [x] 現在地追跡ロジック
+- [x] 移動イベント挿入
+- [x] 衝突検出
+- [x] 衝突解決（flexible習慣をシフト）
 
-### 移動ルート検索（src/lib/scheduler/route-finder.ts）
-- [ ] findRoute関数
-- [ ] findFasterRoutes関数
-- [ ] デフォルト手段の取得
-
-### 遅延検出・調整（src/lib/scheduler/delay-adjuster.ts）
-- [ ] detectDelay関数
-- [ ] adjustSchedule関数
-- [ ] 柔軟なイベントの調整
-- [ ] 固定イベントの保護
-- [ ] 移動時間最適化提案
-
-### イベントハンドラー（src/lib/scheduler/event-handler.ts）
-- [ ] completeEvent関数
-- [ ] skipEvent関数
-- [ ] ステータス更新
-- [ ] 現在地更新
-- [ ] 次のイベントアクティブ化
+### ユニットテスト（src/test/）
+- [x] Vitest セットアップ
+- [x] scheduler/generator テスト（8件）
+- [x] lib/utils テスト（35件）
+- [x] 合計43件 PASS
 
 ---
 
 ## Phase 3: 基本UI実装
 
 ### レイアウト（src/components/layout/）
-- [ ] RootLayout
-- [ ] Sidebar（デスクトップ）
-- [ ] BottomTabBar（モバイル）
-- [ ] Header
-- [ ] Navigation
+- [x] AppShell（RootLayout）
+- [x] Sidebar（デスクトップ）
+- [x] BottomTabBar（モバイル）
 
 ### パターン管理画面（src/app/patterns/）
-- [ ] page.tsx（一覧）
-- [ ] PatternList コンポーネント
-- [ ] PatternCard コンポーネント
-- [ ] PatternCreateDialog
-- [ ] PatternEditDialog
-- [ ] PatternForm コンポーネント
-- [ ] RoutineItemList コンポーネント
-- [ ] RoutineItemDialog（追加/編集）
-- [ ] RoutineItemForm コンポーネント
-- [ ] ドラッグ&ドロップ実装
-- [ ] 削除確認ダイアログ
+- [x] page.tsx（習慣項目一覧 + パターン一覧）
+- [x] RoutineItemForm（チェックボックス + startTimeなし）
+- [x] PatternForm（習慣選択時にstartTime入力）
+- [x] 削除確認ダイアログ（Dialog + onDelete）
+- [~] ドラッグ&ドロップ（将来対応）
 
 ### 場所・移動時間設定画面（src/app/places/）
-- [ ] page.tsx（タブ）
-- [ ] LocationTab コンポーネント
-  - [ ] LocationList
-  - [ ] LocationDialog
-  - [ ] LocationForm
-- [ ] TravelRouteTab コンポーネント
-  - [ ] TravelRouteList
-  - [ ] RouteGroup（区間グループ）
-  - [ ] TravelRouteDialog
-  - [ ] TravelRouteForm
-  - [ ] デフォルト手段切り替え
+- [x] page.tsx（タブ）
+- [x] LocationForm
+- [x] TravelRouteForm
+- [x] デフォルト手段切り替え
 
 ### 設定画面（src/app/settings/）
-- [ ] page.tsx
-- [ ] GeneralSettings コンポーネント
-- [ ] DataManagement コンポーネント
-- [ ] エクスポート機能
-- [ ] インポート機能
-- [ ] データ削除機能
+- [x] page.tsx
+- [x] GeneralSettings
+- [x] DataManagement
+- [x] エクスポート機能（JSON）
+- [x] インポート機能（JSON）
+- [x] データ削除機能
 
 ### 共通フォーム（src/components/forms/）
-- [ ] LocationFormFields
-- [ ] RoutineItemFormFields
-- [ ] PatternFormFields
-- [ ] TravelRouteFormFields
+- [x] RoutineItemForm
+- [x] PatternForm
+- [x] LocationForm
+- [x] TravelRouteForm
 
 ### レスポンシブ対応
-- [ ] モバイルレイアウト確認
-- [ ] タブレットレイアウト確認
-- [ ] デスクトップレイアウト確認
+- [x] モバイルレイアウト（下部タブバー）
+- [x] デスクトップレイアウト（サイドバー）
 
 ---
 
 ## Phase 4: ホーム画面とタイムライン
 
 ### ホーム画面（src/app/page.tsx）
-- [ ] ページレイアウト
-- [ ] PageHeader コンポーネント
-- [ ] 日付ナビゲーション
-- [ ] PatternSelector コンポーネント
-- [ ] 現在地表示
+- [x] ページレイアウト
+- [x] 日付・時刻表示
+- [x] PatternSelector
+- [x] スケジュール生成ボタン
 
 ### イベントカード（src/components/timeline/）
-- [ ] CurrentEventCard
-  - [ ] イベント情報表示
-  - [ ] カウントダウン
-  - [ ] 完了ボタン
-  - [ ] スキップボタン
-- [ ] NextEventCard
-  - [ ] イベント情報表示
-  - [ ] 開始までの時間
+- [x] CurrentEventCard
+- [x] NextEventCard
 
 ### タイムライン（src/components/timeline/）
-- [ ] Timeline コンポーネント
-- [ ] TimelineItem コンポーネント
-  - [ ] ステータスアイコン
-  - [ ] 時刻表示
-  - [ ] タイトル・場所
-  - [ ] 移動イベント表示
-  - [ ] 移動手段変更ボタン
-  - [ ] 空き時間表示
-- [ ] TravelMethodSelector コンポーネント
+- [x] Timeline コンポーネント
+- [x] TimelineItem（ステータス・時刻・タイトル・移動イベント）
 
 ### リアルタイム更新（src/hooks/）
-- [ ] useCurrentTime
-- [ ] useNextEventCountdown
-- [ ] useActiveEvent
-- [ ] useDailySchedule
+- [x] useCurrentTime
+- [x] useDailySchedule
+- [x] useEventTiming
 
 ### イベント処理
-- [ ] completeEvent実装
-- [ ] skipEvent実装
-- [ ] changeTravelMethod実装
-
-### 遅延通知（src/components/common/）
-- [ ] DelayNotification コンポーネント
-- [ ] 遅延情報表示
-- [ ] 提案表示
-- [ ] アクションボタン
+- [x] completeEvent実装
+- [x] skipEvent実装
 
 ---
 
-## Phase 5: カレンダー連携
+## Phase 5a: .ics ファイルインポート ✅
 
-### CalDAV認証（src/lib/calendar/auth.ts）
-- [ ] authenticate関数
-- [ ] saveAuthToken関数
-- [ ] loadAuthToken関数
-- [ ] clearAuthToken関数
-- [ ] isAuthenticated関数
+### .ics パーサー（src/lib/calendar/ics.ts）
+- [x] RFC 5545 準拠パース
+- [x] DTSTART / DTEND / SUMMARY / LOCATION / DESCRIPTION / X-ALLDAY 対応
+- [x] タイムゾーン処理
 
-### カレンダー操作（src/lib/calendar/caldav.ts）
-- [ ] tsdavクライアント初期化
-- [ ] getCalendars関数
-- [ ] getEvents関数
-- [ ] parseCalendarEvent関数
-- [ ] iCalendarパース処理
-
-### 同期処理（src/lib/calendar/sync.ts）
-- [ ] syncCalendar関数（手動）
-- [ ] autoSync関数（自動）
-- [ ] 差分更新ロジック
-- [ ] 同期履歴保存
+### 同期処理（差分更新）
+- [x] 差分更新（追加・更新・削除）
+- [x] UID ベースのマッチング
 
 ### カレンダー連携画面（src/app/calendar/）
-- [ ] page.tsx
-- [ ] ConnectionStatus コンポーネント
-- [ ] AuthDialog コンポーネント
-- [ ] SyncSettings コンポーネント
-- [ ] SyncHistory コンポーネント
+- [x] page.tsx
+- [x] .ics ファイルアップロード UI
+- [x] インポート済みイベント一覧・削除
 
-### エラーハンドリング
-- [ ] 認証エラー処理
-- [ ] ネットワークエラー処理
-- [ ] パースエラー処理
-- [ ] ユーザー通知
+---
+
+## Phase 5b: Google Calendar OAuth 同期（将来：v2）
+
+- [ ] Google OAuth 2.0 認証フロー（Next.js Route Handler）
+- [ ] Google Calendar REST API v3 連携
+- [ ] syncToken 差分同期
+- [ ] 手動同期ボタン + 自動同期間隔設定
 
 ---
 
@@ -367,65 +312,49 @@
 ### パフォーマンス最適化
 - [ ] バンドルサイズ確認
 - [ ] Lighthouse実行
-- [ ] 画像最適化
-- [ ] コード分割確認
 
 ### アクセシビリティ
 - [ ] キーボードナビゲーション
 - [ ] ARIA属性追加
-- [ ] コントラスト比確認
-- [ ] スクリーンリーダーテスト
-
-### ドキュメント
-- [ ] README更新
-- [ ] 使い方ガイド作成
-- [ ] トラブルシューティング
 
 ### デプロイ
+- [ ] Vercel プロジェクト作成
 - [ ] 環境変数設定
-- [ ] 本番デプロイ
-- [ ] 動作確認
-- [ ] カスタムドメイン設定（任意）
-
-### ユーザーテスト
-- [ ] 実際に使用
-- [ ] フィードバック収集
-- [ ] 改善実施
+- [ ] 本番デプロイ・動作確認
 
 ---
 
 ## 追加機能（v2以降）
 
 ### 優先度高
+- [ ] Google Calendar OAuth リアルタイム同期
 - [ ] Supabase移行
 - [ ] プッシュ通知
-- [ ] ダークモード
 - [ ] PWA対応
 
 ### 優先度中
-- [ ] Google Calendar対応
+- [ ] ダークモード
 - [ ] データ分析
 - [ ] AI最適化提案
-- [ ] ウィジェット
 
 ### 優先度低
 - [ ] チーム共有
 - [ ] 多言語対応
 - [ ] Electronアプリ
-- [ ] React Nativeアプリ
 
 ---
 
 ## 備考
 
-### 現在の状況
-- ドキュメント作成完了
-- 実装開始前
+### 現在の状況（2026-03-04）
+- Phase 0〜5a 実装完了
+- 43件のユニットテスト PASS
+- データモデル変更：RoutineItem から startTime を分離し PatternRoutineItem として管理
+- LocalStorage の後方互換マイグレーション実装済み
 
 ### 次のアクション
-1. Phase 0のセットアップから開始
-2. 各フェーズごとにブランチを切る
-3. 完了したらmainにマージ
+1. Phase 6: Vercel デプロイ
+2. v2: Google Calendar OAuth 同期
 
 ### 開発Tips
 - 小さく始めて段階的に実装

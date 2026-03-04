@@ -40,8 +40,6 @@ export interface RoutineItem {
   id: string;
   /** 習慣名（例: "朝食", "運動"） */
   name: string;
-  /** 開始時刻（HH:mm 形式） */
-  startTime: string;
   /** 所要時間（分） */
   duration: number;
   /** 実施場所の Location ID（null の場合は現在地のまま） */
@@ -63,6 +61,17 @@ export interface RoutineItem {
 // -----------------------------------------------
 // LifePattern（生活習慣パターン）
 // -----------------------------------------------
+
+/**
+ * パターン内の習慣項目
+ * パターンと RoutineItem の関連情報。同一の RoutineItem を複数パターンで異なる時刻に使用できる
+ */
+export interface PatternRoutineItem {
+  /** 参照する RoutineItem の ID */
+  routineItemId: string;
+  /** このパターン内での開始時刻（HH:mm 形式） */
+  startTime: string;
+}
 
 /**
  * パターン適用ルール
@@ -90,8 +99,8 @@ export interface LifePattern {
   name: string;
   /** 適用ルール */
   rules: PatternRule;
-  /** このパターンに含まれる RoutineItem の ID リスト */
-  routineItemIds: string[];
+  /** このパターンに含まれる習慣項目と開始時刻のリスト */
+  patternItems: PatternRoutineItem[];
   /** ISO 8601 形式の作成日時 */
   createdAt: string;
   /** ISO 8601 形式の更新日時 */

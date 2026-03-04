@@ -20,8 +20,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { CreateLifePatternSchema, type LifePatternFormValues } from '@/lib/validations/schemas';
-import type { LifePattern, RoutineItem } from '@/types';
+import type { LifePattern, PatternRoutineItem, RoutineItem } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
 const DAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'] as const;
@@ -60,7 +61,7 @@ export function PatternForm({
             isDefault: defaultValues.rules.isDefault,
             priority: defaultValues.rules.priority,
           },
-          routineItemIds: defaultValues.routineItemIds,
+          patternItems: defaultValues.patternItems,
         }
       : {
           name: '',
@@ -70,9 +71,37 @@ export function PatternForm({
             isDefault: false,
             priority: 10,
           },
-          routineItemIds: [],
+          patternItems: [],
         },
   });
+
+  useEffect(() => {
+    if (open) {
+      form.reset(
+        defaultValues
+          ? {
+              name: defaultValues.name,
+              rules: {
+                dayOfWeek: defaultValues.rules.dayOfWeek,
+                keywords: defaultValues.rules.keywords,
+                isDefault: defaultValues.rules.isDefault,
+                priority: defaultValues.rules.priority,
+              },
+              patternItems: defaultValues.patternItems,
+            }
+          : {
+              name: '',
+              rules: {
+                dayOfWeek: [],
+                keywords: [],
+                isDefault: false,
+                priority: 10,
+              },
+              patternItems: [],
+            }
+      );
+    }
+  }, [open, defaultValues]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSubmit(data: LifePatternFormValues) {
     onSubmit(data);
@@ -200,7 +229,7 @@ export function PatternForm({
             {/* 含める習慣項目 */}
             <FormField
               control={form.control}
-              name="routineItemIds"
+              name="patternItems"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>含める習慣項目</FormLabel>
@@ -209,30 +238,57 @@ export function PatternForm({
                       習慣項目がありません。先に習慣項目を追加してください。
                     </p>
                   ) : (
-                    <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
-                      {routineItems.map((item) => (
-                        <label
-                          key={item.id}
-                          className="flex cursor-pointer items-center gap-2 select-none"
-                        >
-                          <Checkbox
-                            checked={field.value.includes(item.id)}
-                            onCheckedChange={(checked) => {
-                              const next = checked
-                                ? [...field.value, item.id]
-                                : field.value.filter((id) => id !== item.id);
-                              field.onChange(next);
-                            }}
-                          />
-                          <span className="text-sm">
-                            {item.icon && <span className="mr-1">{item.icon}</span>}
-                            {item.name}
-                          </span>
-                          <span className="text-muted-foreground ml-auto text-xs">
-                            {item.startTime} / {item.duration}分
-                          </span>
-                        </label>
-                      ))}
+                    <div className="max-h-64 space-y-2 overflow-y-auto rounded-md border p-3">
+                      {routineItems.map((item) => {
+                        const patternItem = (field.value as PatternRoutineItem[]).find(
+                          (pi) => pi.routineItemId === item.id
+                        );
+                        const isChecked = !!patternItem;
+                        return (
+                          <div key={item.id} className="flex items-center gap-2">
+                            <Checkbox
+                              checked={isChecked}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  field.onChange([
+                                    ...(field.value as PatternRoutineItem[]),
+                                    { routineItemId: item.id, startTime: '07:00' },
+                                  ]);
+                                } else {
+                                  field.onChange(
+                                    (field.value as PatternRoutineItem[]).filter(
+                                      (pi) => pi.routineItemId !== item.id
+                                    )
+                                  );
+                                }
+                              }}
+                            />
+                            <span className="flex-1 text-sm">
+                              {item.icon && <span className="mr-1">{item.icon}</span>}
+                              {item.name}
+                              <span className="text-muted-foreground ml-1 text-xs">
+                                {item.duration}分
+                              </span>
+                            </span>
+                            {isChecked && (
+                              <Input
+                                type="time"
+                                className="h-7 w-24 text-xs"
+                                value={patternItem.startTime}
+                                onChange={(e) => {
+                                  field.onChange(
+                                    (field.value as PatternRoutineItem[]).map((pi) =>
+                                      pi.routineItemId === item.id
+                                        ? { ...pi, startTime: e.target.value }
+                                        : pi
+                                    )
+                                  );
+                                }}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                   <FormMessage />

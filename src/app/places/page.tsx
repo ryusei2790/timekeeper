@@ -111,7 +111,7 @@ export default function PlacesPage() {
   }
 
   return (
-    <div className="container max-w-2xl space-y-6 py-6">
+    <div className="container mt-8 ml-8 max-w-2xl space-y-6 py-6">
       {/* ページヘッダー */}
       <div>
         <h1 className="text-2xl font-bold">場所・移動時間</h1>
