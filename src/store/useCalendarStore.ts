@@ -11,10 +11,10 @@ interface CalendarStore {
   error: string | null;
   lastSyncAt: string | null;
 
-  loadCalendarEvents: () => void;
+  loadCalendarEvents: () => Promise<void>;
   getEventsByDate: (date: string) => CalendarEvent[];
-  saveEvents: (events: CalendarEvent[]) => void;
-  clearEvents: () => void;
+  saveEvents: (events: CalendarEvent[]) => Promise<void>;
+  clearEvents: () => Promise<void>;
   clearError: () => void;
 }
 
@@ -25,10 +25,10 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
   error: null,
   lastSyncAt: null,
 
-  loadCalendarEvents: () => {
+  loadCalendarEvents: async () => {
     set({ isLoading: true, error: null });
     try {
-      const calendarEvents = calendarEventService.getAll();
+      const calendarEvents = await calendarEventService.getAll();
       set({ calendarEvents, isLoading: false });
     } catch (error) {
       set({
@@ -42,10 +42,10 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
     return get().calendarEvents.filter((e) => e.startTime.startsWith(date));
   },
 
-  saveEvents: (events) => {
+  saveEvents: async (events) => {
     try {
-      calendarEventService.upsertMany(events);
-      const all = calendarEventService.getAll();
+      await calendarEventService.upsertMany(events);
+      const all = await calendarEventService.getAll();
       set({ calendarEvents: all, lastSyncAt: new Date().toISOString() });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '保存に失敗しました' });
@@ -53,8 +53,8 @@ export const useCalendarStore = create<CalendarStore>((set, get) => ({
     }
   },
 
-  clearEvents: () => {
-    calendarEventService.clear();
+  clearEvents: async () => {
+    await calendarEventService.clear();
     set({ calendarEvents: [] });
   },
 

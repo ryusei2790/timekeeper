@@ -9,10 +9,10 @@ interface RoutineStore {
   isLoading: boolean;
   error: string | null;
 
-  loadRoutineItems: () => void;
-  addRoutineItem: (data: CreateInput<RoutineItem>) => RoutineItem;
-  updateRoutineItem: (id: string, data: UpdateInput<RoutineItem>) => void;
-  deleteRoutineItem: (id: string) => void;
+  loadRoutineItems: () => Promise<void>;
+  addRoutineItem: (data: CreateInput<RoutineItem>) => Promise<RoutineItem>;
+  updateRoutineItem: (id: string, data: UpdateInput<RoutineItem>) => Promise<void>;
+  deleteRoutineItem: (id: string) => Promise<void>;
   getRoutineItemById: (id: string) => RoutineItem | undefined;
   clearError: () => void;
 }
@@ -22,10 +22,10 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  loadRoutineItems: () => {
+  loadRoutineItems: async () => {
     set({ isLoading: true, error: null });
     try {
-      const routineItems = routineItemService.getAll();
+      const routineItems = await routineItemService.getAll();
       set({ routineItems, isLoading: false });
     } catch (error) {
       set({
@@ -35,9 +35,9 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
     }
   },
 
-  addRoutineItem: (data) => {
+  addRoutineItem: async (data) => {
     try {
-      const newItem = routineItemService.create(data);
+      const newItem = await routineItemService.create(data);
       set((state) => ({ routineItems: [...state.routineItems, newItem] }));
       return newItem;
     } catch (error) {
@@ -46,9 +46,9 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
     }
   },
 
-  updateRoutineItem: (id, data) => {
+  updateRoutineItem: async (id, data) => {
     try {
-      const updated = routineItemService.update(id, data);
+      const updated = await routineItemService.update(id, data);
       set((state) => ({
         routineItems: state.routineItems.map((item) => (item.id === id ? updated : item)),
       }));
@@ -58,9 +58,9 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
     }
   },
 
-  deleteRoutineItem: (id) => {
+  deleteRoutineItem: async (id) => {
     try {
-      routineItemService.delete(id);
+      await routineItemService.delete(id);
       set((state) => ({
         routineItems: state.routineItems.filter((item) => item.id !== id),
       }));

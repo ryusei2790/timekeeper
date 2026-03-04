@@ -9,10 +9,10 @@ interface TravelRouteStore {
   isLoading: boolean;
   error: string | null;
 
-  loadTravelRoutes: () => void;
-  addTravelRoute: (data: CreateInput<TravelRoute>) => TravelRoute;
-  updateTravelRoute: (id: string, data: UpdateInput<TravelRoute>) => void;
-  deleteTravelRoute: (id: string) => void;
+  loadTravelRoutes: () => Promise<void>;
+  addTravelRoute: (data: CreateInput<TravelRoute>) => Promise<TravelRoute>;
+  updateTravelRoute: (id: string, data: UpdateInput<TravelRoute>) => Promise<void>;
+  deleteTravelRoute: (id: string) => Promise<void>;
   getRouteById: (id: string) => TravelRoute | undefined;
   clearError: () => void;
 }
@@ -22,10 +22,10 @@ export const useTravelRouteStore = create<TravelRouteStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  loadTravelRoutes: () => {
+  loadTravelRoutes: async () => {
     set({ isLoading: true, error: null });
     try {
-      const travelRoutes = travelRouteService.getAll();
+      const travelRoutes = await travelRouteService.getAll();
       set({ travelRoutes, isLoading: false });
     } catch (error) {
       set({
@@ -35,9 +35,9 @@ export const useTravelRouteStore = create<TravelRouteStore>((set, get) => ({
     }
   },
 
-  addTravelRoute: (data) => {
+  addTravelRoute: async (data) => {
     try {
-      const newRoute = travelRouteService.create(data);
+      const newRoute = await travelRouteService.create(data);
       set((state) => ({ travelRoutes: [...state.travelRoutes, newRoute] }));
       return newRoute;
     } catch (error) {
@@ -46,9 +46,9 @@ export const useTravelRouteStore = create<TravelRouteStore>((set, get) => ({
     }
   },
 
-  updateTravelRoute: (id, data) => {
+  updateTravelRoute: async (id, data) => {
     try {
-      const updated = travelRouteService.update(id, data);
+      const updated = await travelRouteService.update(id, data);
       set((state) => ({
         travelRoutes: state.travelRoutes.map((r) => (r.id === id ? updated : r)),
       }));
@@ -58,9 +58,9 @@ export const useTravelRouteStore = create<TravelRouteStore>((set, get) => ({
     }
   },
 
-  deleteTravelRoute: (id) => {
+  deleteTravelRoute: async (id) => {
     try {
-      travelRouteService.delete(id);
+      await travelRouteService.delete(id);
       set((state) => ({
         travelRoutes: state.travelRoutes.filter((r) => r.id !== id),
       }));

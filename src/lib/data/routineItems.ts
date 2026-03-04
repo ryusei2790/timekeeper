@@ -1,6 +1,34 @@
-import { routineItemsStorage } from '@/lib/storage';
+import { getDb } from '@/lib/db';
 import { generateId, now } from '@/lib/utils/id';
 import type { CreateInput, RoutineItem, UpdateInput } from '@/types';
+
+interface RoutineItemRow {
+  id: string;
+  name: string;
+  duration: number;
+  location_id: string | null;
+  icon: string | null;
+  color: string | null;
+  is_flexible: boolean;
+  priority: number;
+  created_at: string;
+  updated_at: string;
+}
+
+function rowToRoutineItem(row: RoutineItemRow): RoutineItem {
+  return {
+    id: row.id,
+    name: row.name,
+    duration: row.duration,
+    locationId: row.location_id,
+    icon: row.icon ?? undefined,
+    color: row.color ?? undefined,
+    isFlexible: row.is_flexible,
+    priority: row.priority,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
 
 /**
  * RoutineItem エンティティの CRUD サービス
@@ -9,24 +37,31 @@ export const routineItemService = {
   /**
    * 全ての習慣項目を取得する
    */
-  getAll(): RoutineItem[] {
-    return routineItemsStorage.get() ?? [];
+  async getAll(): Promise<RoutineItem[]> {
+    const db = await getDb();
+    const result = await db.query<RoutineItemRow>(
+      'SELECT * FROM routine_items ORDER BY created_at'
+    );
+    return result.rows.map(rowToRoutineItem);
   },
 
   /**
    * ID で習慣項目を取得する
    */
-  getById(id: string): RoutineItem | null {
-    return this.getAll().find((item) => item.id === id) ?? null;
+  async getById(id: string): Promise<RoutineItem | null> {
+    const db = await getDb();
+    const result = await db.query<RoutineItemRow>('SELECT * FROM routine_items WHERE id = $1', [
+      id,
+    ]);
+    return result.rows[0] ? rowToRoutineItem(result.rows[0]) : null;
   },
 
   /**
    * 複数の ID で習慣項目をまとめて取得する
-   * @param ids 取得する RoutineItem の ID リスト
-   * @returns 見つかった RoutineItem の配列（順序は ids に従う）
    */
-  getByIds(ids: string[]): RoutineItem[] {
-    const all = this.getAll();
+  async getByIds(ids: string[]): Promise<RoutineItem[]> {
+    if (ids.length === 0) return [];
+    const all = await this.getAll();
     return ids.flatMap((id) => {
       const item = all.find((r) => r.id === id);
       return item ? [item] : [];
@@ -36,14 +71,30 @@ export const routineItemService = {
   /**
    * 新しい習慣項目を作成する
    */
-  create(data: CreateInput<RoutineItem>): RoutineItem {
+  async create(data: CreateInput<RoutineItem>): Promise<RoutineItem> {
+    const db = await getDb();
     const newItem: RoutineItem = {
       ...data,
       id: generateId(),
       createdAt: now(),
       updatedAt: now(),
     };
-    routineItemsStorage.update((items) => [...(items ?? []), newItem]);
+    await db.query(
+      `INSERT INTO routine_items (id, name, duration, location_id, icon, color, is_flexible, priority, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+      [
+        newItem.id,
+        newItem.name,
+        newItem.duration,
+        newItem.locationId ?? null,
+        newItem.icon ?? null,
+        newItem.color ?? null,
+        newItem.isFlexible,
+        newItem.priority,
+        newItem.createdAt,
+        newItem.updatedAt,
+      ]
+    );
     return newItem;
   },
 
@@ -51,31 +102,39 @@ export const routineItemService = {
    * 既存の習慣項目を更新する
    * @throws 指定 ID の習慣項目が見つからない場合
    */
-  update(id: string, data: UpdateInput<RoutineItem>): RoutineItem {
-    const items = this.getAll();
-    const index = items.findIndex((item) => item.id === id);
-
-    if (index === -1) {
-      throw new Error(`RoutineItem が見つかりません: ${id}`);
-    }
+  async update(id: string, data: UpdateInput<RoutineItem>): Promise<RoutineItem> {
+    const current = await this.getById(id);
+    if (!current) throw new Error(`RoutineItem が見つかりません: ${id}`);
 
     const updated: RoutineItem = {
-      ...items[index],
+      ...current,
       ...data,
       id,
       updatedAt: now(),
     };
-
-    items[index] = updated;
-    routineItemsStorage.set(items);
+    const db = await getDb();
+    await db.query(
+      `UPDATE routine_items SET name=$1, duration=$2, location_id=$3, icon=$4, color=$5, is_flexible=$6, priority=$7, updated_at=$8 WHERE id=$9`,
+      [
+        updated.name,
+        updated.duration,
+        updated.locationId ?? null,
+        updated.icon ?? null,
+        updated.color ?? null,
+        updated.isFlexible,
+        updated.priority,
+        updated.updatedAt,
+        id,
+      ]
+    );
     return updated;
   },
 
   /**
    * 習慣項目を削除する
    */
-  delete(id: string): void {
-    const items = this.getAll().filter((item) => item.id !== id);
-    routineItemsStorage.set(items);
+  async delete(id: string): Promise<void> {
+    const db = await getDb();
+    await db.query('DELETE FROM routine_items WHERE id = $1', [id]);
   },
 };

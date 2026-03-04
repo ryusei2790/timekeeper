@@ -7,7 +7,7 @@ import type { CalendarEvent } from '@/types';
 // -----------------------------------------------
 
 /**
- * パース済みイベントを LocalStorage に保存する（差分計算あり）
+ * パース済みイベントを PGlite に保存する（差分計算あり）
  *
  * - 既存イベントとの差分を計算し、追加・更新・削除を反映する
  * - インポート成功後は Settings の lastSyncAt を更新する
@@ -15,17 +15,17 @@ import type { CalendarEvent } from '@/types';
  * @param events .ics からパースしたイベント
  * @returns インポート結果サマリー
  */
-export function importCalendarEvents(events: CalendarEvent[]): SyncResult {
-  const result = applyEventDiff(events);
-  updateLastSyncAt(new Date().toISOString());
+export async function importCalendarEvents(events: CalendarEvent[]): Promise<SyncResult> {
+  const result = await applyEventDiff(events);
+  await updateLastSyncAt(new Date().toISOString());
   return result;
 }
 
 /**
- * 取得したイベントと既存イベントの差分を計算し LocalStorage に反映する
+ * 取得したイベントと既存イベントの差分を計算し DB に反映する
  */
-function applyEventDiff(fetchedEvents: CalendarEvent[]): SyncResult {
-  const existing = calendarEventService.getAll();
+async function applyEventDiff(fetchedEvents: CalendarEvent[]): Promise<SyncResult> {
+  const existing = await calendarEventService.getAll();
   const existingMap = new Map(existing.map((e) => [e.id, e]));
   const fetchedMap = new Map(fetchedEvents.map((e) => [e.id, e]));
 
@@ -47,7 +47,7 @@ function applyEventDiff(fetchedEvents: CalendarEvent[]): SyncResult {
   }
 
   if (toUpsert.length > 0) {
-    calendarEventService.upsertMany(toUpsert);
+    await calendarEventService.upsertMany(toUpsert);
   }
 
   // 削除（ics-import カレンダーで今回取得されなかったイベントを除去）
@@ -59,7 +59,7 @@ function applyEventDiff(fetchedEvents: CalendarEvent[]): SyncResult {
   });
 
   if (deleted > 0) {
-    calendarEventService.saveAll(toKeep);
+    await calendarEventService.saveAll(toKeep);
   }
 
   return { added, updated, deleted, total: fetchedEvents.length };
@@ -82,12 +82,12 @@ function hasEventChanged(a: CalendarEvent, b: CalendarEvent): boolean {
 /**
  * Settings の calendarSync.lastSyncAt を更新する
  */
-function updateLastSyncAt(syncedAt: string): void {
+async function updateLastSyncAt(syncedAt: string): Promise<void> {
   try {
-    const settings = settingsService.get();
+    const settings = await settingsService.get();
     if (!settings) return;
 
-    settingsService.update({
+    await settingsService.update({
       calendarSync: {
         ...settings.calendarSync,
         lastSyncAt: syncedAt,

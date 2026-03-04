@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
+import { DbInitializer } from '@/components/common/DbInitializer';
 import { Toaster } from '@/components/ui/sonner';
 
 const geistSans = Geist({
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <DbInitializer />
         <AppShell>{children}</AppShell>
         <Toaster />
       </body>

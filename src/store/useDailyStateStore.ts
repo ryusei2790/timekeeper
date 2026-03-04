@@ -11,15 +11,15 @@ interface DailyStateStore {
   error: string | null;
 
   /** 指定日の状態を読み込む */
-  loadDailyState: (date: string) => void;
+  loadDailyState: (date: string) => Promise<void>;
   /** スケジュールアイテムのステータスを更新する */
-  updateEventStatus: (eventId: string, status: EventStatus) => void;
+  updateEventStatus: (eventId: string, status: EventStatus) => Promise<void>;
   /** 遅延を記録する */
-  recordDelay: (delay: DelayRecord) => void;
+  recordDelay: (delay: DelayRecord) => Promise<void>;
   /** 日次状態を保存する */
-  saveDailyState: (state: Omit<DailyState, 'createdAt' | 'updatedAt'>) => void;
+  saveDailyState: (state: Omit<DailyState, 'createdAt' | 'updatedAt'>) => Promise<void>;
   /** スケジュールを更新する */
-  updateSchedule: (schedule: ScheduleItem[]) => void;
+  updateSchedule: (schedule: ScheduleItem[]) => Promise<void>;
   clearError: () => void;
 }
 
@@ -28,10 +28,10 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  loadDailyState: (date) => {
+  loadDailyState: async (date) => {
     set({ isLoading: true, error: null });
     try {
-      const todayState = dailyStateService.getByDate(date);
+      const todayState = await dailyStateService.getByDate(date);
       set({ todayState, isLoading: false });
     } catch (error) {
       set({
@@ -41,7 +41,7 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
     }
   },
 
-  updateEventStatus: (eventId, status) => {
+  updateEventStatus: async (eventId, status) => {
     const current = get().todayState;
     if (!current) return;
 
@@ -62,7 +62,7 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
     const activeEventId = status === 'active' ? eventId : current.activeEventId;
 
     try {
-      const updated = dailyStateService.upsert({
+      const updated = await dailyStateService.upsert({
         ...current,
         generatedSchedule: updatedSchedule,
         completedEventIds,
@@ -75,12 +75,12 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
     }
   },
 
-  recordDelay: (delay) => {
+  recordDelay: async (delay) => {
     const current = get().todayState;
     if (!current) return;
 
     try {
-      const updated = dailyStateService.upsert({
+      const updated = await dailyStateService.upsert({
         ...current,
         delays: [...current.delays, delay],
       });
@@ -90,9 +90,9 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
     }
   },
 
-  saveDailyState: (state) => {
+  saveDailyState: async (state) => {
     try {
-      const saved = dailyStateService.upsert(state);
+      const saved = await dailyStateService.upsert(state);
       set({ todayState: saved });
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '保存に失敗しました' });
@@ -100,12 +100,12 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
     }
   },
 
-  updateSchedule: (schedule) => {
+  updateSchedule: async (schedule) => {
     const current = get().todayState;
     if (!current) return;
 
     try {
-      const updated = dailyStateService.upsert({
+      const updated = await dailyStateService.upsert({
         ...current,
         generatedSchedule: schedule,
       });

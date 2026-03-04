@@ -9,10 +9,10 @@ interface PatternStore {
   isLoading: boolean;
   error: string | null;
 
-  loadPatterns: () => void;
-  addPattern: (data: CreateInput<LifePattern>) => LifePattern;
-  updatePattern: (id: string, data: UpdateInput<LifePattern>) => void;
-  deletePattern: (id: string) => void;
+  loadPatterns: () => Promise<void>;
+  addPattern: (data: CreateInput<LifePattern>) => Promise<LifePattern>;
+  updatePattern: (id: string, data: UpdateInput<LifePattern>) => Promise<void>;
+  deletePattern: (id: string) => Promise<void>;
   getPatternById: (id: string) => LifePattern | undefined;
   clearError: () => void;
 }
@@ -22,10 +22,10 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  loadPatterns: () => {
+  loadPatterns: async () => {
     set({ isLoading: true, error: null });
     try {
-      const patterns = patternService.getAll();
+      const patterns = await patternService.getAll();
       set({ patterns, isLoading: false });
     } catch (error) {
       set({
@@ -35,9 +35,9 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
     }
   },
 
-  addPattern: (data) => {
+  addPattern: async (data) => {
     try {
-      const newPattern = patternService.create(data);
+      const newPattern = await patternService.create(data);
       set((state) => ({ patterns: [...state.patterns, newPattern] }));
       return newPattern;
     } catch (error) {
@@ -46,9 +46,9 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
     }
   },
 
-  updatePattern: (id, data) => {
+  updatePattern: async (id, data) => {
     try {
-      const updated = patternService.update(id, data);
+      const updated = await patternService.update(id, data);
       set((state) => ({
         patterns: state.patterns.map((p) => (p.id === id ? updated : p)),
       }));
@@ -58,9 +58,9 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
     }
   },
 
-  deletePattern: (id) => {
+  deletePattern: async (id) => {
     try {
-      patternService.delete(id);
+      await patternService.delete(id);
       set((state) => ({
         patterns: state.patterns.filter((p) => p.id !== id),
       }));

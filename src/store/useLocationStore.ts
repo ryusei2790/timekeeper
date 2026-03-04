@@ -12,14 +12,14 @@ interface LocationStore {
   /** エラーメッセージ */
   error: string | null;
 
-  /** LocalStorage からデータを読み込む */
-  loadLocations: () => void;
+  /** DBからデータを読み込む */
+  loadLocations: () => Promise<void>;
   /** 場所を追加する */
-  addLocation: (data: CreateInput<Location>) => Location;
+  addLocation: (data: CreateInput<Location>) => Promise<Location>;
   /** 場所を更新する */
-  updateLocation: (id: string, data: UpdateInput<Location>) => void;
+  updateLocation: (id: string, data: UpdateInput<Location>) => Promise<void>;
   /** 場所を削除する */
-  deleteLocation: (id: string) => void;
+  deleteLocation: (id: string) => Promise<void>;
   /** ID で場所を取得する */
   getLocationById: (id: string) => Location | undefined;
   /** エラーをクリアする */
@@ -31,10 +31,10 @@ export const useLocationStore = create<LocationStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  loadLocations: () => {
+  loadLocations: async () => {
     set({ isLoading: true, error: null });
     try {
-      const locations = locationService.getAll();
+      const locations = await locationService.getAll();
       set({ locations, isLoading: false });
     } catch (error) {
       set({
@@ -44,9 +44,9 @@ export const useLocationStore = create<LocationStore>((set, get) => ({
     }
   },
 
-  addLocation: (data) => {
+  addLocation: async (data) => {
     try {
-      const newLocation = locationService.create(data);
+      const newLocation = await locationService.create(data);
       set((state) => ({ locations: [...state.locations, newLocation] }));
       return newLocation;
     } catch (error) {
@@ -55,9 +55,9 @@ export const useLocationStore = create<LocationStore>((set, get) => ({
     }
   },
 
-  updateLocation: (id, data) => {
+  updateLocation: async (id, data) => {
     try {
-      const updated = locationService.update(id, data);
+      const updated = await locationService.update(id, data);
       set((state) => ({
         locations: state.locations.map((loc) => (loc.id === id ? updated : loc)),
       }));
@@ -67,9 +67,9 @@ export const useLocationStore = create<LocationStore>((set, get) => ({
     }
   },
 
-  deleteLocation: (id) => {
+  deleteLocation: async (id) => {
     try {
-      locationService.delete(id);
+      await locationService.delete(id);
       set((state) => ({
         locations: state.locations.filter((loc) => loc.id !== id),
       }));

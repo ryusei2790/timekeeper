@@ -49,11 +49,18 @@
 
 ## バックエンド
 
-### データ保存（MVP）
-- **LocalStorage**
+### データ保存（MVP → v1.5移行中）
+- **LocalStorage**（MVP：現在の実装）
   - ブラウザ内保存
   - 5-10MBの容量制限
   - JSON形式でシリアライズ
+
+- **PGlite（`@electric-sql/pglite`）**（v1.5：移行予定）
+  - ブラウザ内でWASM版PostgreSQLを動作
+  - IndexedDBによる永続化（容量制限なし）
+  - SQLクエリ対応（Drizzle ORM経由）
+  - サーバー不要・完全プライベート・オフライン動作
+  - デバイス間同期は不可（個人端末での利用が前提）
 
 ### 将来の拡張（v2以降）
 - **Supabase**
@@ -197,7 +204,8 @@ timekeeper/
   "tailwindcss": "^4.0.0",
   "class-variance-authority": "^0.7.0",
   "clsx": "^2.0.0",
-  "tailwind-merge": "^2.6.0"
+  "tailwind-merge": "^2.6.0",
+  "@electric-sql/pglite": "^0.2.x"
 }
 ```
 
@@ -328,11 +336,16 @@ pnpm test
 
 ## 今後の技術的検討事項
 
+### v1.5で実施予定
+- **PGlite移行**：LocalStorage → IndexedDB上のPostgreSQL（`@electric-sql/pglite`）
+  - BaseStorage クラスを廃止し、PGlite + Drizzle ORM に置き換え
+  - 全7サービス（locations, routineItems, patterns, travelRoutes, calendarEvents, dailyState, settings）を非同期SQL操作に移行
+  - Zustand store は非同期対応（`loadXxx` を async 化）
+
 ### v2以降で検討
 - PWA対応（オフライン動作強化）
 - Webプッシュ通知
 - Service Worker活用
-- IndexedDB移行（LocalStorageの容量制限対策）
 - GraphQL（Supabase連携時）
 - E2Eテストの導入
 - Storybook導入（コンポーネントカタログ）

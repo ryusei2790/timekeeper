@@ -56,7 +56,7 @@ export default function CalendarPage() {
         return;
       }
 
-      const result = importCalendarEvents(events);
+      const result = await importCalendarEvents(events);
       setImportResult(result);
       toast.success(
         `インポート完了: ${result.added}件追加, ${result.updated}件更新, ${result.deleted}件削除`
