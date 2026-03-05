@@ -1,6 +1,8 @@
 'use client';
 
 import { patternService } from '@/lib/data/patterns';
+import { patternToRecord, syncDelete, syncUpsert } from '@/lib/sync/writeThrough';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { CreateInput, LifePattern, UpdateInput } from '@/types';
 import { create } from 'zustand';
 
@@ -43,6 +45,10 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
     try {
       const newPattern = await patternService.create(data);
       set((state) => ({ patterns: [...state.patterns, newPattern] }));
+      const user = useAuthStore.getState().user;
+      if (user) {
+        syncUpsert('life_patterns', patternToRecord(newPattern, user.id)).catch(console.warn);
+      }
       return newPattern;
     } catch (error) {
       console.error('[PatternStore] addPattern 失敗:', error);
@@ -58,6 +64,10 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
       set((state) => ({
         patterns: state.patterns.map((p) => (p.id === id ? updated : p)),
       }));
+      const user = useAuthStore.getState().user;
+      if (user) {
+        syncUpsert('life_patterns', patternToRecord(updated, user.id)).catch(console.warn);
+      }
     } catch (error) {
       console.error('[PatternStore] updatePattern 失敗:', error);
       set({ error: error instanceof Error ? error.message : '更新に失敗しました' });
@@ -72,6 +82,9 @@ export const usePatternStore = create<PatternStore>((set, get) => ({
       set((state) => ({
         patterns: state.patterns.filter((p) => p.id !== id),
       }));
+      if (useAuthStore.getState().user) {
+        syncDelete('life_patterns', id).catch(console.warn);
+      }
     } catch (error) {
       console.error('[PatternStore] deletePattern 失敗:', error);
       set({ error: error instanceof Error ? error.message : '削除に失敗しました' });

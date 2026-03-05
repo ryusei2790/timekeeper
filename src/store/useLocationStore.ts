@@ -1,6 +1,8 @@
 'use client';
 
 import { locationService } from '@/lib/data/locations';
+import { locationToRecord, syncDelete, syncUpsert } from '@/lib/sync/writeThrough';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { CreateInput, Location, UpdateInput } from '@/types';
 import { create } from 'zustand';
 
@@ -48,6 +50,10 @@ export const useLocationStore = create<LocationStore>((set, get) => ({
     try {
       const newLocation = await locationService.create(data);
       set((state) => ({ locations: [...state.locations, newLocation] }));
+      const user = useAuthStore.getState().user;
+      if (user) {
+        syncUpsert('locations', locationToRecord(newLocation, user.id)).catch(console.warn);
+      }
       return newLocation;
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '追加に失敗しました' });
@@ -61,6 +67,10 @@ export const useLocationStore = create<LocationStore>((set, get) => ({
       set((state) => ({
         locations: state.locations.map((loc) => (loc.id === id ? updated : loc)),
       }));
+      const user = useAuthStore.getState().user;
+      if (user) {
+        syncUpsert('locations', locationToRecord(updated, user.id)).catch(console.warn);
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '更新に失敗しました' });
       throw error;
@@ -73,6 +83,9 @@ export const useLocationStore = create<LocationStore>((set, get) => ({
       set((state) => ({
         locations: state.locations.filter((loc) => loc.id !== id),
       }));
+      if (useAuthStore.getState().user) {
+        syncDelete('locations', id).catch(console.warn);
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '削除に失敗しました' });
       throw error;

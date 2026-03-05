@@ -1,6 +1,8 @@
 'use client';
 
 import { travelRouteService } from '@/lib/data/travelRoutes';
+import { syncDelete, syncUpsert, travelRouteToRecord } from '@/lib/sync/writeThrough';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { CreateInput, TravelRoute, UpdateInput } from '@/types';
 import { create } from 'zustand';
 
@@ -39,6 +41,10 @@ export const useTravelRouteStore = create<TravelRouteStore>((set, get) => ({
     try {
       const newRoute = await travelRouteService.create(data);
       set((state) => ({ travelRoutes: [...state.travelRoutes, newRoute] }));
+      const user = useAuthStore.getState().user;
+      if (user) {
+        syncUpsert('travel_routes', travelRouteToRecord(newRoute, user.id)).catch(console.warn);
+      }
       return newRoute;
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '追加に失敗しました' });
@@ -52,6 +58,10 @@ export const useTravelRouteStore = create<TravelRouteStore>((set, get) => ({
       set((state) => ({
         travelRoutes: state.travelRoutes.map((r) => (r.id === id ? updated : r)),
       }));
+      const user = useAuthStore.getState().user;
+      if (user) {
+        syncUpsert('travel_routes', travelRouteToRecord(updated, user.id)).catch(console.warn);
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '更新に失敗しました' });
       throw error;
@@ -64,6 +74,9 @@ export const useTravelRouteStore = create<TravelRouteStore>((set, get) => ({
       set((state) => ({
         travelRoutes: state.travelRoutes.filter((r) => r.id !== id),
       }));
+      if (useAuthStore.getState().user) {
+        syncDelete('travel_routes', id).catch(console.warn);
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '削除に失敗しました' });
       throw error;

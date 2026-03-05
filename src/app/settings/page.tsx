@@ -15,6 +15,8 @@ import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { getDb } from '@/lib/db';
+import { uploadAll } from '@/lib/sync/supabaseSync';
+import { useAuthStore } from '@/store/useAuthStore';
 import { useCalendarStore } from '@/store/useCalendarStore';
 import { useLocationStore } from '@/store/useLocationStore';
 import { usePatternStore } from '@/store/usePatternStore';
@@ -23,8 +25,8 @@ import { useSettingsStore } from '@/store/useSettingsStore';
 import { useTravelRouteStore } from '@/store/useTravelRouteStore';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { Calendar, Download, Trash2, Upload } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { Calendar, Cloud, CloudOff, Download, RefreshCw, Trash2, Upload } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function SettingsPage() {
@@ -35,6 +37,8 @@ export default function SettingsPage() {
   const { loadPatterns } = usePatternStore();
   const { loadRoutineItems } = useRoutineStore();
   const { loadTravelRoutes } = useTravelRouteStore();
+  const { user, signOut } = useAuthStore();
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     loadSettings();
@@ -203,6 +207,65 @@ export default function SettingsPage() {
         <h1 className="text-2xl font-bold">設定</h1>
         <p className="text-muted-foreground mt-1 text-sm">アプリの動作をカスタマイズします</p>
       </div>
+
+      {/* -------- アカウント -------- */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">アカウント</CardTitle>
+          <CardDescription>ログインするとクロスデバイスでデータを同期できます</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {user ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm">
+                <Cloud className="h-4 w-4 text-green-500" />
+                <span className="font-medium">{user.email}</span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isSyncing}
+                  onClick={async () => {
+                    setIsSyncing(true);
+                    try {
+                      await uploadAll(user.id);
+                      toast.success('同期しました');
+                    } catch {
+                      toast.error('同期に失敗しました');
+                    } finally {
+                      setIsSyncing(false);
+                    }
+                  }}
+                >
+                  <RefreshCw className={`mr-1 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                  今すぐ同期
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    await signOut();
+                    toast.success('ログアウトしました');
+                  }}
+                >
+                  ログアウト
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div className="text-muted-foreground flex items-center gap-2 text-sm">
+                <CloudOff className="h-4 w-4" />
+                <span>未ログイン（このデバイスのみで動作中）</span>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <a href="/login">ログイン</a>
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* -------- 一般設定 -------- */}
       <Card>
