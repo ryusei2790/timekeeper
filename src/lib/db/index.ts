@@ -13,14 +13,19 @@ export async function getDb(): Promise<PGlite> {
     throw new Error('PGlite はブラウザ専用です');
   }
 
-  if (db) return db;
+  if (db) {
+    console.debug('[DB] 既存インスタンスを返却: idb://timekeeper');
+    return db;
+  }
 
   if (!initPromise) {
     initPromise = (async () => {
+      console.log('[DB] PGlite初期化開始: idb://timekeeper');
       const { PGlite } = await import('@electric-sql/pglite');
       const instance = new PGlite('idb://timekeeper');
       await initSchema(instance);
       db = instance;
+      console.log('[DB] PGlite初期化完了: idb://timekeeper');
       return db;
     })();
   }

@@ -23,7 +23,13 @@ import { toast } from 'sonner';
  * - イベントの完了・スキップ処理を提供
  */
 export function useDailySchedule() {
-  const { todayState, loadDailyState, saveDailyState, updateSchedule } = useDailyStateStore();
+  const {
+    todayState,
+    isLoading: isDailyStateLoading,
+    loadDailyState,
+    saveDailyState,
+    updateSchedule,
+  } = useDailyStateStore();
   const { patterns, loadPatterns } = usePatternStore();
   const { routineItems, loadRoutineItems } = useRoutineStore();
   const { locations, loadLocations } = useLocationStore();
@@ -35,6 +41,7 @@ export function useDailySchedule() {
 
   // 初回ロード
   useEffect(() => {
+    console.log(`[useDailySchedule] データロード開始 (today=${today})`);
     loadDailyState(today);
     loadPatterns();
     loadRoutineItems();
@@ -55,14 +62,35 @@ export function useDailySchedule() {
 
   // スケジュール未生成かつ必要データが揃ったら生成
   useEffect(() => {
-    if (todayState !== null) return; // 既存データあり
-    if (!settings) return;
-    if (patterns.length === 0) return;
+    console.log(
+      `[useDailySchedule] スケジュール生成チェック: loading=${isDailyStateLoading}, todayState=${todayState !== null ? 'あり' : 'null'}, settings=${settings ? 'あり' : 'null'}, patterns=${patterns.length}件`
+    );
+    if (isDailyStateLoading) return; // DBロード完了待ち
+    if (todayState !== null) {
+      console.log(
+        `[useDailySchedule] 既存スケジュールあり → 生成スキップ (schedule=${todayState.generatedSchedule.length}件, patternId=${todayState.patternId})`
+      );
+      return; // 既存データあり
+    }
+    if (!settings) {
+      console.log('[useDailySchedule] settings未ロード → スキップ');
+      return;
+    }
+    if (patterns.length === 0) {
+      console.log('[useDailySchedule] patterns未ロード → スキップ');
+      return;
+    }
 
     const todayDate = new Date();
     const pattern = selectPattern(todayDate, patterns, calendarEvents);
-    if (!pattern) return;
+    if (!pattern) {
+      console.log('[useDailySchedule] selectPattern → null（マッチするパターンなし）');
+      return;
+    }
 
+    console.log(
+      `[useDailySchedule] スケジュール生成開始 (pattern="${pattern.name}", routineItems=${routineItems.length}件)`
+    );
     const generated = generateDailySchedule({
       date: todayDate,
       pattern,
@@ -81,12 +109,14 @@ export function useDailySchedule() {
         )
       : generated.generatedSchedule;
 
+    console.log(`[useDailySchedule] スケジュール生成完了: ${initializedSchedule.length}件`);
     saveDailyState({
       ...generated,
       generatedSchedule: initializedSchedule,
       activeEventId: firstPending?.id ?? null,
     });
   }, [
+    isDailyStateLoading,
     todayState,
     settings,
     patterns,

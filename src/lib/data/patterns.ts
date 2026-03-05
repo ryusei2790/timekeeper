@@ -40,6 +40,7 @@ export const patternService = {
     const result = await db.query<LifePatternRow>(
       'SELECT * FROM life_patterns ORDER BY created_at'
     );
+    console.log(`[patternService] getAll() → ${result.rows.length}件取得`);
     return result.rows.map(rowToPattern);
   },
 
@@ -73,6 +74,7 @@ export const patternService = {
       createdAt: now(),
       updatedAt: now(),
     };
+    console.log(`[patternService] create() → id=${newPattern.id}, name="${newPattern.name}"`);
     await db.query(
       `INSERT INTO life_patterns (id, name, rules, pattern_items, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6)`,
@@ -93,6 +95,7 @@ export const patternService = {
    * @throws 指定 ID のパターンが見つからない場合
    */
   async update(id: string, data: UpdateInput<LifePattern>): Promise<LifePattern> {
+    console.log(`[patternService] update() → id=${id}`);
     const current = await this.getById(id);
     if (!current) throw new Error(`LifePattern が見つかりません: ${id}`);
 
@@ -120,6 +123,7 @@ export const patternService = {
    * パターンを削除する
    */
   async delete(id: string): Promise<void> {
+    console.log(`[patternService] delete() → id=${id}`);
     const db = await getDb();
     await db.query('DELETE FROM life_patterns WHERE id = $1', [id]);
   },

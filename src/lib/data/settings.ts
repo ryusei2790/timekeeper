@@ -39,7 +39,11 @@ export const settingsService = {
   async get(): Promise<Settings | null> {
     const db = await getDb();
     const result = await db.query<SettingsRow>(`SELECT * FROM settings WHERE id = 'default'`);
-    return result.rows[0] ? rowToSettings(result.rows[0]) : null;
+    const found = result.rows[0] ? rowToSettings(result.rows[0]) : null;
+    console.log(
+      `[settingsService] get() → ${found ? `あり (defaultLocationId="${found.defaultLocationId}")` : 'なし（未初期化）'}`
+    );
+    return found;
   },
 
   /**
