@@ -23,32 +23,34 @@ pnpm dlx shadcn@latest add <component-name>
 ### データフロー
 
 ```
-LocalStorage
-  └── lib/storage/base.ts (BaseStorage<T>)
-        └── lib/storage/index.ts (エンティティ別インスタンス)
-              └── lib/data/*.ts (CRUDサービス層)
-                    └── store/use*Store.ts (Zustand Store)
-                          └── React コンポーネント
+PGlite (IndexedDB上のPostgreSQL, idb://timekeeper)
+  └── lib/db/index.ts (getDb() シングルトン)
+        └── lib/data/*.ts (CRUDサービス層 - 非同期SQL)
+              └── store/use*Store.ts (Zustand Store - async)
+                    └── React コンポーネント
 ```
+
+初回起動時に `src/components/common/DbInitializer.tsx` が `migrateFromLocalStorage()` を実行（旧LocalStorageデータをPGliteに移行）。
 
 ### 重要な設計上のルール
 
 - **`@/lib/utils`** は shadcn/ui が参照する `cn()` のみを export する（変更禁止）。`generateId()` / `now()` は `@/lib/utils/id` から import すること
-- **`'use client'`** を全 Zustand store ファイルに付与する（LocalStorage はブラウザ専用）
-- **`BaseStorage`** は全メソッドで `typeof window === 'undefined'` をチェックしている（SSR安全）
-- **Settings** は Singleton。初回起動時に `settingsService.initialize(locationId)` を呼ぶ必要がある
+- **`'use client'`** を全 Zustand store ファイルに付与する（PGlite はブラウザ専用）
+- **`getDb()`** は `typeof window === 'undefined'` のとき例外を投げる（SSR安全）
+- **Settings** は Singleton（テーブル上の id='default' レコード）。初回起動時に `settingsService.initialize(locationId)` を呼ぶ必要がある
+- **全サービスメソッドは非同期**（`async/await`）。Zustand store の `load*()` も `Promise<void>` を返す
 
-### エンティティと LocalStorage キー
+### エンティティと DB テーブル
 
-| エンティティ  | Storage キー                 | サービス               | Store                 |
-| ------------- | ---------------------------- | ---------------------- | --------------------- |
-| Location      | `timekeeper_locations`       | `locationService`      | `useLocationStore`    |
-| RoutineItem   | `timekeeper_routine_items`   | `routineItemService`   | `useRoutineStore`     |
-| LifePattern   | `timekeeper_patterns`        | `patternService`       | `usePatternStore`     |
-| TravelRoute   | `timekeeper_travel_routes`   | `travelRouteService`   | `useTravelRouteStore` |
-| CalendarEvent | `timekeeper_calendar_events` | `calendarEventService` | `useCalendarStore`    |
-| DailyState    | `timekeeper_daily_states`    | `dailyStateService`    | `useDailyStateStore`  |
-| Settings      | `timekeeper_settings`        | `settingsService`      | `useSettingsStore`    |
+| エンティティ  | テーブル名        | サービス               | Store                 |
+| ------------- | ----------------- | ---------------------- | --------------------- |
+| Location      | `locations`       | `locationService`      | `useLocationStore`    |
+| RoutineItem   | `routine_items`   | `routineItemService`   | `useRoutineStore`     |
+| LifePattern   | `life_patterns`   | `patternService`       | `usePatternStore`     |
+| TravelRoute   | `travel_routes`   | `travelRouteService`   | `useTravelRouteStore` |
+| CalendarEvent | `calendar_events` | `calendarEventService` | `useCalendarStore`    |
+| DailyState    | `daily_states`    | `dailyStateService`    | `useDailyStateStore`  |
+| Settings      | `settings`        | `settingsService`      | `useSettingsStore`    |
 
 ### 型定義
 
@@ -65,11 +67,13 @@ LocalStorage
 ## 実装フェーズ
 
 - ✅ Phase 0: セットアップ
-- ✅ Phase 1: データ層（型定義・Storage・CRUD・Zustand）
-- ⬜ Phase 2: コアロジック（`lib/scheduler/`, `lib/calendar/`）
-- ⬜ Phase 3: 基本UI（`components/forms/`, `components/layout/`）
-- ⬜ Phase 4: ホーム画面・タイムライン（`components/timeline/`）
-- ⬜ Phase 5: CalDAV連携（tsdav、Apple ID認証）⚠️ accessToken 暗号化必須
-- ⬜ Phase 6: デプロイ（Vercel）
+- ✅ Phase 1: データ層（型定義・CRUD・Zustand）
+- ✅ Phase 1.5: PGlite移行（LocalStorage → IndexedDB上のPostgreSQL）
+- ✅ Phase 2: コアロジック（`lib/scheduler/`, `lib/calendar/`）
+- ✅ Phase 3: 基本UI（`components/forms/`, `components/layout/`）
+- ✅ Phase 4: ホーム画面・タイムライン（`components/timeline/`）
+- ✅ Phase 5a: カレンダー連携（.ics ファイルインポート）
+- ⬜ Phase 5b: Google Calendar OAuth リアルタイム同期（将来・v2）
+- ⬜ Phase 6: Supabase統合（パスフレーズ方式・クロスデバイス同期）+ Vercel デプロイ
 
 設計ドキュメントは `docs/` 配下（requirements.md, data-model.md, ui-design.md 等）。

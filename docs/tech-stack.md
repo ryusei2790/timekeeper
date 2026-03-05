@@ -49,25 +49,24 @@
 
 ## バックエンド
 
-### データ保存（MVP → v1.5移行中）
-- **LocalStorage**（MVP：現在の実装）
-  - ブラウザ内保存
-  - 5-10MBの容量制限
-  - JSON形式でシリアライズ
-
-- **PGlite（`@electric-sql/pglite`）**（v1.5：移行予定）
+### データ保存（現在：PGlite 移行完了）
+- **PGlite（`@electric-sql/pglite` v0.3.15）**（v1〜v1.4：現在の実装）
   - ブラウザ内でWASM版PostgreSQLを動作
   - IndexedDBによる永続化（容量制限なし）
-  - SQLクエリ対応（Drizzle ORM経由）
+  - SQLクエリ対応（生SQL + 型付きクエリ）
   - サーバー不要・完全プライベート・オフライン動作
-  - デバイス間同期は不可（個人端末での利用が前提）
+  - LocalStorageからの自動マイグレーション対応（`src/lib/db/migrate.ts`）
+  - **制約：デバイス間同期は不可**（IndexedDBは端末ローカル）
 
-### 将来の拡張（v2以降）
+### クロスデバイス同期（v1.5：次フェーズ）
 - **Supabase**
-  - PostgreSQLデータベース
-  - リアルタイム同期
-  - 認証機能
-  - ストレージ
+  - **パスフレーズ方式**：メールアドレスをそのまま識別子として入力（メール確認なし）
+    - ユーザーが任意のメールアドレスを入力 → そのハッシュ値をユーザーキーとして使用
+    - Supabase Postgres にユーザーキー列（`user_key TEXT`）でデータを分離保存
+    - どのブラウザ・デバイスから同じメールアドレスを入力すれば同一データにアクセス可能
+    - ⚠️ セキュリティ：他人のメールアドレスを入力すればそのデータが見える（認証なし設計）
+  - PGliteのローカルデータをSupabase Postgresに移行
+  - Vercelデプロイ後に環境変数（`SUPABASE_URL`, `SUPABASE_ANON_KEY`）で接続
 
 ## 外部API連携
 
@@ -169,8 +168,9 @@ timekeeper/
 │   │   ├── forms/     # フォームコンポーネント
 │   │   └── common/    # 共通コンポーネント
 │   ├── lib/           # ユーティリティ・ヘルパー
-│   │   ├── storage/   # LocalStorage操作
-│   │   ├── calendar/  # CalDAV連携
+│   │   ├── db/        # PGlite初期化・スキーマ・マイグレーション
+│   │   ├── data/      # CRUDサービス層（async SQL）
+│   │   ├── calendar/  # カレンダー連携（.icsパーサー等）
 │   │   ├── scheduler/ # スケジュール生成ロジック
 │   │   └── utils/     # 汎用ユーティリティ
 │   ├── hooks/         # カスタムフック
@@ -191,38 +191,35 @@ timekeeper/
 ### プロダクション依存
 ```json
 {
-  "next": "^16.1.6",
-  "react": "^19.2.3",
-  "react-dom": "^19.2.3",
-  "typescript": "^5.0.0",
-  "zustand": "^5.0.11",
-  "react-hook-form": "^7.54.2",
-  "zod": "^4.3.6",
-  "date-fns": "^4.1.0",
-  "lucide-react": "^0.475.0",
-  "@radix-ui/react-*": "latest",
-  "tailwindcss": "^4.0.0",
-  "class-variance-authority": "^0.7.0",
-  "clsx": "^2.0.0",
-  "tailwind-merge": "^2.6.0",
-  "@electric-sql/pglite": "^0.2.x"
+  "next": "16.1.6",
+  "react": "19.2.3",
+  "react-dom": "19.2.3",
+  "typescript": "5",
+  "zustand": "5.0.11",
+  "react-hook-form": "7.71.2",
+  "@hookform/resolvers": "5.2.2",
+  "zod": "4.3.6",
+  "date-fns": "4.1.0",
+  "lucide-react": "0.575.0",
+  "tailwindcss": "4",
+  "@electric-sql/pglite": "0.3.15",
+  "uuid": "13.0.0"
 }
 ```
 
 ### 開発依存
 ```json
 {
-  "@types/node": "^20.0.0",
-  "@types/react": "^19.0.0",
-  "@types/react-dom": "^19.0.0",
-  "eslint": "^9.0.0",
-  "eslint-config-next": "^16.1.6",
-  "prettier": "^3.0.0",
-  "prettier-plugin-tailwindcss": "^0.6.0",
-  "husky": "^9.0.0",
-  "lint-staged": "^15.0.0",
-  "vitest": "^3.0.0",
-  "@vitest/coverage-v8": "^3.0.0"
+  "@types/node": "20",
+  "@types/react": "19",
+  "@types/react-dom": "19",
+  "eslint": "9",
+  "eslint-config-next": "16.1.6",
+  "prettier": "3.8.1",
+  "prettier-plugin-tailwindcss": "0.6.x",
+  "husky": "9.1.7",
+  "lint-staged": "16.3.0",
+  "vitest": "4.0.18"
 }
 ```
 
@@ -336,11 +333,13 @@ pnpm test
 
 ## 今後の技術的検討事項
 
-### v1.5で実施予定
-- **PGlite移行**：LocalStorage → IndexedDB上のPostgreSQL（`@electric-sql/pglite`）
-  - BaseStorage クラスを廃止し、PGlite + Drizzle ORM に置き換え
-  - 全7サービス（locations, routineItems, patterns, travelRoutes, calendarEvents, dailyState, settings）を非同期SQL操作に移行
-  - Zustand store は非同期対応（`loadXxx` を async 化）
+### v1.5で実施予定（次フェーズ）
+- **Supabase統合**：PGlite（ローカル）→ Supabase Postgres（クラウド）
+  - パスフレーズ入力UI（メールアドレスをキーとして入力する画面）
+  - Supabase クライアント（`@supabase/supabase-js`）導入
+  - 全7テーブルをSupabase Postgresに移行
+  - `user_key` 列でユーザーデータを分離
+- **Vercelデプロイ**：Phase 6 として本番公開
 
 ### v2以降で検討
 - PWA対応（オフライン動作強化）

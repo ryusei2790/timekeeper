@@ -143,24 +143,10 @@ LocalStorageによるデータ永続化と型定義の完成
 - [ ] SettingsSchema
 
 #### 3. LocalStorage操作（`src/lib/storage/`）
+> ✅ 完了・PGliteに移行済み（Phase 1.5参照）
 ```typescript
-// storage.ts
-export class Storage<T> {
-  constructor(private key: string) {}
-
-  get(): T | null
-  set(data: T): void
-  update(updater: (data: T) => T): void
-  delete(): void
-}
-
-// locations.ts
-export const locationsStorage = new Storage<Location[]>('timekeeper_locations');
-
-// patterns.ts
-export const patternsStorage = new Storage<LifePattern[]>('timekeeper_patterns');
-
-// ... 他のストレージも同様
+// 現在は src/lib/db/ + src/lib/data/ に移行済み
+// LocalStorageからPGliteへの自動マイグレーションも実装済み
 ```
 
 #### 4. データアクセス層（`src/lib/data/`）
@@ -218,6 +204,33 @@ export const useLocationStore = create<LocationStore>((set) => ({
 - ✅ LocalStorageによる永続化
 - ✅ Zustandによる状態管理
 - ✅ データアクセス層
+
+---
+
+## Phase 1.5: PGlite移行 ✅ 完了
+
+### 目標
+LocalStorage（5-10MB制限）からPGlite（IndexedDB上のPostgreSQL）へ移行し、容量制限を撤廃
+
+### 実装済みファイル
+- `src/lib/db/index.ts` — PGlite シングルトン初期化（`getDb()`）
+- `src/lib/db/schema.ts` — 全テーブル DDL（7テーブル）
+- `src/lib/db/migrate.ts` — LocalStorage → PGlite 自動マイグレーション
+- `src/lib/data/` — 全7サービスを非同期SQL操作に書き換え
+- `src/store/` — 全7 Zustand store を async 化
+- `src/components/common/DbInitializer.tsx` — 初回起動時にマイグレーション実行
+- `src/lib/storage/` — 削除済み（BaseStorage廃止）
+
+### テーブル構成（PGlite / IndexedDB）
+| テーブル | 対応エンティティ |
+|---------|---------------|
+| `locations` | Location |
+| `routine_items` | RoutineItem |
+| `life_patterns` | LifePattern |
+| `travel_routes` | TravelRoute |
+| `calendar_events` | CalendarEvent |
+| `daily_states` | DailyState |
+| `settings` | Settings（singleton） |
 
 ---
 
@@ -556,65 +569,76 @@ export async function fetchGoogleEvents(
 
 ---
 
-## Phase 6: 仕上げ・デプロイ（1週間）
+## Phase 6: Supabase統合 + Vercelデプロイ
 
 ### 目標
-バグ修正、最適化、本番デプロイ
+クロスデバイスデータ同期（Supabase パスフレーズ方式）を実装し、Vercel で本番公開
+
+### 設計方針：パスフレーズ方式
+- ユーザーがメールアドレスを入力するだけでデータにアクセス（メール確認なし）
+- メールアドレスをSHA-256ハッシュ化したものを `user_key` として使用
+- Supabase Postgres の各テーブルに `user_key TEXT NOT NULL` 列を追加してデータ分離
+- ⚠️ セキュリティ注意：他人のメールアドレスを知っていればデータが見える（個人用途前提）
 
 ### タスク
 
-#### 1. バグ修正
-- [ ] 全機能の動作確認
-- [ ] エッジケースのテスト
-- [ ] エラーハンドリングの改善
+#### 1. Supabase セットアップ
+- [ ] Supabase プロジェクト作成（無料枠）
+- [ ] 環境変数追加（`.env.local`）：
+  ```env
+  NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY=xxx
+  ```
+- [ ] `@supabase/supabase-js` インストール
+- [ ] Supabase クライアント初期化（`src/lib/supabase/client.ts`）
 
-#### 2. パフォーマンス最適化
-- [ ] バンドルサイズ確認
-- [ ] Lighthouseスコア改善
-- [ ] 画像最適化
-- [ ] コード分割
+#### 2. Supabase テーブル作成
+- [ ] PGliteと同じ7テーブルを Supabase で作成
+- [ ] 各テーブルに `user_key TEXT NOT NULL` 列を追加
+- [ ] `user_key` にインデックスを作成
 
-#### 3. アクセシビリティ
-- [ ] キーボードナビゲーション確認
-- [ ] ARIA属性追加
-- [ ] コントラスト比確認
-- [ ] スクリーンリーダーテスト
+#### 3. パスフレーズ入力UI
+- [ ] `src/components/common/UserKeyInput.tsx`：メールアドレス入力モーダル
+- [ ] メールアドレス → SHA-256 ハッシュ化（Web Crypto API）
+- [ ] `user_key` を localStorage に保存（セッション維持）
+- [ ] `src/app/layout.tsx` に組み込み
 
-#### 4. ドキュメント整備
-- [ ] README更新
-- [ ] 使い方ガイド作成
-- [ ] トラブルシューティング
+#### 4. サービス層の切り替え
+- [ ] PGlite（ローカル）→ Supabase（クラウド）へのデータ移行ロジック
+- [ ] 全7サービスの `getDb()` を Supabase クライアントに切り替え
+- [ ] すべてのクエリに `user_key` フィルターを追加
 
-#### 5. 本番デプロイ
-- [ ] 環境変数設定（Vercel）
+#### 5. Vercel デプロイ
+- [ ] Vercel プロジェクト作成・GitHub 連携
+- [ ] 環境変数設定（Vercel ダッシュボード）
+- [ ] 本番ビルド確認（`pnpm build`）
 - [ ] カスタムドメイン設定（任意）
-- [ ] アナリティクス設定（任意）
-- [ ] エラートラッキング設定（任意）
 
-#### 6. ユーザーテスト
-- [ ] 実際に使ってみる
-- [ ] フィードバック収集
-- [ ] 改善点の洗い出し
+#### 6. 動作確認
+- [ ] 全機能の動作確認
+- [ ] 異なるブラウザで同じメールアドレスを使ってデータが共有されること確認
+- [ ] バンドルサイズ・Lighthouseスコア確認
 
 **成果物**:
-- ✅ バグのない安定版
-- ✅ 本番環境デプロイ完了
-- ✅ ドキュメント完成
+- [ ] パスフレーズ方式のクロスデバイス同期
+- [ ] Vercel 本番環境デプロイ
+- [ ] 公開 URL
 
 ---
 
 ## スケジュール概要
 
-| フェーズ | 期間 | 累積 |
+| フェーズ | 期間 | 状態 |
 |---------|------|------|
-| Phase 0: セットアップ | 1週間 | 1週間 |
-| Phase 1: データ層 | 1週間 | 2週間 |
-| Phase 2: コアロジック | 1-2週間 | 3-4週間 |
-| Phase 3: 基本UI | 2週間 | 5-6週間 |
-| Phase 4: ホーム画面 | 2週間 | 7-8週間 |
-| Phase 5a: .ics インポート（✅完了） | 0週間 | 8週間 |
-| Phase 5b: Google カレンダー連携（v2） | 2-3週間 | 10-11週間 |
-| Phase 6: 仕上げ | 1週間 | 10-12週間 |
+| Phase 0: セットアップ | 1週間 | ✅ 完了 |
+| Phase 1: データ層 | 1週間 | ✅ 完了 |
+| Phase 1.5: PGlite移行 | 1週間 | ✅ 完了 |
+| Phase 2: コアロジック | 1-2週間 | ✅ 完了 |
+| Phase 3: 基本UI | 2週間 | ✅ 完了 |
+| Phase 4: ホーム画面 | 2週間 | ✅ 完了 |
+| Phase 5a: .ics インポート | 1週間 | ✅ 完了 |
+| Phase 5b: Google カレンダー連携 | 2-3週間 | ⬜ 将来（v2） |
+| Phase 6: Supabase + Vercel デプロイ | 1-2週間 | ⬜ 未着手 |
 
 **合計: 約2.5-3ヶ月**
 
