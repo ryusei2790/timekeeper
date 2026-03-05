@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -73,6 +74,9 @@ export function LocationForm({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEditing ? '場所を編集' : '場所を追加'}</DialogTitle>
+          <DialogDescription>
+            生活の拠点となる場所を作成・編集します。場所名、別名、住所を設定できます。
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

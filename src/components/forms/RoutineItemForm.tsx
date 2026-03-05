@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -110,6 +111,9 @@ export function RoutineItemForm({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEditing ? '習慣項目を編集' : '習慣項目を追加'}</DialogTitle>
+          <DialogDescription>
+            毎日の習慣項目を作成・編集します。名前、所要時間、実行場所、優先度を設定できます。
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

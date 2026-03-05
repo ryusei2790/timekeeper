@@ -5,6 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -118,6 +119,9 @@ export function PatternForm({
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'パターンを編集' : 'パターンを追加'}</DialogTitle>
+          <DialogDescription>
+            生活習慣パターンを作成・編集します。適用曜日や含める習慣項目を設定できます。
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>

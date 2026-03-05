@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -86,6 +87,9 @@ export function TravelRouteForm({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{isEditing ? '移動ルートを編集' : '移動ルートを追加'}</DialogTitle>
+          <DialogDescription>
+            場所間の移動ルートを作成・編集します。出発地、目的地、移動手段、所要時間を指定できます。
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
