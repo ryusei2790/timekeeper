@@ -1,6 +1,8 @@
 'use client';
 
 import { settingsService } from '@/lib/data/settings';
+import { syncSettingsUpsert } from '@/lib/sync/writeThrough';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { Settings } from '@/types';
 import { create } from 'zustand';
 
@@ -37,6 +39,9 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     try {
       const settings = await settingsService.initialize(defaultLocationId);
       set({ settings });
+      if (useAuthStore.getState().user) {
+        syncSettingsUpsert(settings).catch(console.warn);
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '設定の初期化に失敗しました' });
     }
@@ -46,6 +51,9 @@ export const useSettingsStore = create<SettingsStore>((set) => ({
     try {
       const updated = await settingsService.update(data);
       set({ settings: updated });
+      if (useAuthStore.getState().user) {
+        syncSettingsUpsert(updated).catch(console.warn);
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '設定の更新に失敗しました' });
     }

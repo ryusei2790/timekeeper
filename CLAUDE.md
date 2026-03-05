@@ -28,9 +28,18 @@ PGlite (IndexedDB上のPostgreSQL, idb://timekeeper)
         └── lib/data/*.ts (CRUDサービス層 - 非同期SQL)
               └── store/use*Store.ts (Zustand Store - async)
                     └── React コンポーネント
+
+[ログイン中のみ] write-through（ベストエフォート）:
+  store/use*Store.ts
+    └── lib/sync/writeThrough.ts
+          └── Supabase Postgres（クラウド）
 ```
 
-初回起動時に `src/components/common/DbInitializer.tsx` が `migrateFromLocalStorage()` を実行（旧LocalStorageデータをPGliteに移行）。
+初回起動時に `src/components/common/DbInitializer.tsx` が以下を実行:
+
+1. `migrateFromLocalStorage()` — 旧LocalStorageデータをPGliteに移行
+2. `useAuthStore.getState().initialize()` — Supabase セッション確認
+3. セッションあり → `syncOnLogin(user.id)` — クラウド同期
 
 ### 重要な設計上のルール
 
@@ -51,6 +60,7 @@ PGlite (IndexedDB上のPostgreSQL, idb://timekeeper)
 | CalendarEvent | `calendar_events` | `calendarEventService` | `useCalendarStore`    |
 | DailyState    | `daily_states`    | `dailyStateService`    | `useDailyStateStore`  |
 | Settings      | `settings`        | `settingsService`      | `useSettingsStore`    |
+| (Auth)        | Supabase Auth     | —                      | `useAuthStore`        |
 
 ### 型定義
 
@@ -60,9 +70,21 @@ PGlite (IndexedDB上のPostgreSQL, idb://timekeeper)
 
 `src/lib/validations/schemas.ts` に Zod v4 スキーマ。フォーム用の型は `z.infer<typeof CreateXxxSchema>` で取得。Zod v4 はエラーメッセージを `{ error: '...' }` で指定する（v3 の `{ message: '...' }` ではない）。
 
+### 認証・同期（Phase 6）
+
+- **Supabase Auth（Magic Link）**: `src/lib/supabase/client.ts` / `server.ts`
+- **Auth Store**: `src/store/useAuthStore.ts`（`user`, `initialize`, `signInWithMagicLink`, `signOut`）
+- **Write-through**: `src/lib/sync/writeThrough.ts`（ログイン中のみ Supabase にも書く）
+- **初期同期**: `src/lib/sync/supabaseSync.ts`（`syncOnLogin` / `uploadAll` / `downloadAll`）
+- **ログインページ**: `src/app/login/page.tsx`
+- **コールバック**: `src/app/auth/callback/route.ts`（`/settings` へリダイレクト）
+- **Middleware**: `middleware.ts`（セッション Cookie リフレッシュのみ）
+- **他ストアからの Auth 参照**: `useAuthStore.getState().user`（フック呼び出し不可・循環依存防止）
+- **環境変数**: `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
 ### ナビゲーション構造
 
-5画面構成: `/`（ホーム）、`/patterns`（パターン管理）、`/places`（場所・移動）、`/calendar`（カレンダー連携）、`/settings`（設定）
+6画面構成: `/`（ホーム）、`/patterns`（パターン管理）、`/places`（場所・移動）、`/calendar`（カレンダー連携）、`/settings`（設定）、`/login`（ログイン・ナビなし）
 
 ## 実装フェーズ
 
@@ -75,6 +97,6 @@ PGlite (IndexedDB上のPostgreSQL, idb://timekeeper)
 - ✅ Phase 5a: カレンダー連携（.ics ファイルインポート）
 - ✅ バグ修正: settings未初期化によるスケジュール生成不能を修正（`DbInitializer.tsx` でアプリ起動時に自動初期化）
 - ⬜ Phase 5b: Google Calendar OAuth リアルタイム同期（将来・v2）
-- ⬜ Phase 6: Supabase統合（パスフレーズ方式・クロスデバイス同期）+ Vercel デプロイ
+- 🔄 Phase 6: Supabase Auth（Magic Link）+ クロスデバイス同期 + Vercel デプロイ（実装中）
 
 設計ドキュメントは `docs/` 配下（requirements.md, data-model.md, ui-design.md 等）。

@@ -1,6 +1,8 @@
 'use client';
 
 import { dailyStateService } from '@/lib/data/dailyState';
+import { syncDailyStateUpsert } from '@/lib/sync/writeThrough';
+import { useAuthStore } from '@/store/useAuthStore';
 import type { DailyState, DelayRecord, EventStatus, ScheduleItem } from '@/types';
 import { create } from 'zustand';
 
@@ -75,6 +77,9 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
         activeEventId,
       });
       set({ todayState: updated });
+      if (useAuthStore.getState().user) {
+        syncDailyStateUpsert(updated).catch(console.warn);
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '更新に失敗しました' });
     }
@@ -90,6 +95,9 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
         delays: [...current.delays, delay],
       });
       set({ todayState: updated });
+      if (useAuthStore.getState().user) {
+        syncDailyStateUpsert(updated).catch(console.warn);
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : '遅延記録に失敗しました' });
     }
@@ -102,6 +110,9 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
     try {
       const saved = await dailyStateService.upsert(state);
       set({ todayState: saved });
+      if (useAuthStore.getState().user) {
+        syncDailyStateUpsert(saved).catch(console.warn);
+      }
     } catch (error) {
       console.error(`[DailyStateStore] saveDailyState(${state.date}) 失敗:`, error);
       set({ error: error instanceof Error ? error.message : '保存に失敗しました' });
@@ -119,6 +130,9 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
         generatedSchedule: schedule,
       });
       set({ todayState: updated });
+      if (useAuthStore.getState().user) {
+        syncDailyStateUpsert(updated).catch(console.warn);
+      }
     } catch (error) {
       set({ error: error instanceof Error ? error.message : 'スケジュール更新に失敗しました' });
     }
