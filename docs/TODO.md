@@ -302,24 +302,39 @@
 
 ---
 
-## Phase 6: 仕上げ・デプロイ
+## Phase 6: Supabase Auth（Magic Link）+ Vercel デプロイ 🔄 実装中
 
-### バグ修正
-- [ ] 全機能の動作確認
-- [ ] エッジケーステスト
-- [ ] エラーハンドリング改善
+### Supabase セットアップ（手動: ダッシュボード上）
+- [ ] Supabase プロジェクト作成
+- [ ] SQL Editor で 7 テーブル作成（user_id UUID + RLS）
+- [ ] Authentication > URL Configuration で Redirect URLs 設定
 
-### パフォーマンス最適化
-- [ ] バンドルサイズ確認
-- [ ] Lighthouse実行
+### 新規ファイル作成
+- [ ] `src/lib/supabase/client.ts` — ブラウザ用クライアントシングルトン
+- [ ] `src/lib/supabase/server.ts` — Route Handler 用クライアント
+- [ ] `src/store/useAuthStore.ts` — Auth 状態管理
+- [ ] `src/lib/sync/writeThrough.ts` — Supabase upsert/delete ユーティリティ
+- [ ] `src/lib/sync/supabaseSync.ts` — syncOnLogin / uploadAll / downloadAll
+- [ ] `src/app/login/page.tsx` — Magic Link ログインページ
+- [ ] `src/app/auth/callback/route.ts` — コールバックハンドラー（→ /settings）
+- [ ] `middleware.ts` — セッション Cookie リフレッシュ
 
-### アクセシビリティ
-- [ ] キーボードナビゲーション
-- [ ] ARIA属性追加
+### 既存ファイル変更
+- [ ] `src/components/common/DbInitializer.tsx` — Auth 初期化 + syncOnLogin
+- [ ] `src/components/layout/AppShell.tsx` — /login・/auth でナビ非表示
+- [ ] `src/store/useLocationStore.ts` — write-through 追加
+- [ ] `src/store/useRoutineStore.ts` — write-through 追加
+- [ ] `src/store/usePatternStore.ts` — write-through 追加
+- [ ] `src/store/useTravelRouteStore.ts` — write-through 追加
+- [ ] `src/store/useCalendarStore.ts` — write-through 追加
+- [ ] `src/store/useDailyStateStore.ts` — write-through 追加
+- [ ] `src/store/useSettingsStore.ts` — write-through 追加
+- [ ] `src/app/settings/page.tsx` — アカウントカード追加（ログイン/ログアウト/手動同期）
 
-### デプロイ
-- [ ] Vercel プロジェクト作成
-- [ ] 環境変数設定
+### Vercel デプロイ
+- [ ] Vercel プロジェクト作成・GitHub 連携
+- [ ] 環境変数設定（NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY）
+- [ ] `pnpm build` 成功確認
 - [ ] 本番デプロイ・動作確認
 
 ---
@@ -327,8 +342,7 @@
 ## 追加機能（v2以降）
 
 ### 優先度高
-- [ ] Google Calendar OAuth リアルタイム同期
-- [ ] Supabase移行
+- [ ] Google Calendar OAuth リアルタイム同期（Phase 5b）
 - [ ] プッシュ通知
 - [ ] PWA対応
 
@@ -356,8 +370,8 @@
 - **デバッグログ追加**: 各サービス・store・フックにコンソールログを追加（DB初期化〜スケジュール生成までのデータフローを可視化）
 
 ### 次のアクション
-1. Phase 6: Vercel デプロイ
-2. v2: Google Calendar OAuth 同期
+1. Phase 6: Supabase Auth（Magic Link）実装中（`login` ブランチ）
+2. v2: Google Calendar OAuth 同期（Phase 5b）
 
 ### 開発Tips
 - 小さく始めて段階的に実装

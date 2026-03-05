@@ -58,15 +58,20 @@
   - LocalStorageからの自動マイグレーション対応（`src/lib/db/migrate.ts`）
   - **制約：デバイス間同期は不可**（IndexedDBは端末ローカル）
 
-### クロスデバイス同期（v1.5：次フェーズ）
-- **Supabase**
-  - **パスフレーズ方式**：メールアドレスをそのまま識別子として入力（メール確認なし）
-    - ユーザーが任意のメールアドレスを入力 → そのハッシュ値をユーザーキーとして使用
-    - Supabase Postgres にユーザーキー列（`user_key TEXT`）でデータを分離保存
-    - どのブラウザ・デバイスから同じメールアドレスを入力すれば同一データにアクセス可能
-    - ⚠️ セキュリティ：他人のメールアドレスを入力すればそのデータが見える（認証なし設計）
-  - PGliteのローカルデータをSupabase Postgresに移行
-  - Vercelデプロイ後に環境変数（`SUPABASE_URL`, `SUPABASE_ANON_KEY`）で接続
+### クロスデバイス同期（Phase 6：実装中）
+- **Supabase Auth（Magic Link）**
+  - `@supabase/supabase-js@^2.98.0` + `@supabase/ssr@^0.9.0`（インストール済み）
+  - メールアドレス入力 → Supabase がワンタイムリンクを送信 → クリックでセッション確立
+  - Cookie によるセッション管理（`createBrowserClient` / `createServerClient`）
+  - Row Level Security（RLS）: `auth.uid() = user_id` でデータ分離
+  - 将来の Google/Apple/GitHub 認証はダッシュボードで ON にするだけ（コード変更不要）
+- **データ同期戦略**（オフラインファースト維持）
+  - 未ログイン: PGlite のみで全機能動作
+  - ログイン中: PGlite + Supabase write-through（ベストエフォート）
+  - ログイン時: ローカルにデータあれば `uploadAll`、なければ `downloadAll`
+  - 衝突解決: Last-Write-Wins（`updated_at` ISO 8601 辞書順）
+- **新規ファイル**: `src/lib/supabase/` / `src/lib/sync/` / `src/store/useAuthStore.ts`
+- **環境変数**: `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ## 外部API連携
 
@@ -333,12 +338,11 @@ pnpm test
 
 ## 今後の技術的検討事項
 
-### v1.5で実施予定（次フェーズ）
-- **Supabase統合**：PGlite（ローカル）→ Supabase Postgres（クラウド）
-  - パスフレーズ入力UI（メールアドレスをキーとして入力する画面）
-  - Supabase クライアント（`@supabase/supabase-js`）導入
-  - 全7テーブルをSupabase Postgresに移行
-  - `user_key` 列でユーザーデータを分離
+### Phase 6（実装中）
+- **Supabase Auth（Magic Link）**：`login` ブランチで実装中
+  - PGlite はそのまま維持（オフラインファースト）
+  - ログイン時のみ Supabase にも write-through
+  - 全7テーブルを Supabase Postgres に mirror（`user_id UUID` + RLS）
 - **Vercelデプロイ**：Phase 6 として本番公開
 
 ### v2以降で検討

@@ -3,7 +3,7 @@
 ## 概要
 
 このドキュメントでは、Timekeeperアプリケーションで使用するデータ構造を定義します。
-MVPではLocalStorageに保存し、将来的にSupabaseへ移行する想定です。
+現在は PGlite（IndexedDB）でローカル保存。Phase 6 で Supabase Postgres にもミラーリング（write-through）する。
 
 ## データストレージ構造
 
@@ -623,4 +623,36 @@ function migrate(oldVersion: number, newVersion: number): void {
     migratedAt: new Date().toISOString()
   });
 }
+
+---
+
+## Supabase テーブル設計（Phase 6）
+
+PGlite の 7 テーブルを Supabase Postgres にミラーリングする。各テーブルに `user_id UUID` を追加し、Row Level Security（RLS）で `auth.uid() = user_id` によりデータ分離する。
+
+### PGlite との差分
+
+| テーブル | PGlite | Supabase |
+|---------|--------|----------|
+| `daily_states` | PK: `date TEXT` | PK: `(id TEXT, user_id UUID)` の複合キー |
+| `settings` | PK: `id = 'default'`（固定文字列） | PK: `user_id UUID` |
+| その他 5 テーブル | PK: `id TEXT` | PK: `id TEXT`（`user_id UUID` を追加） |
+
+### 認証方式
+
+- **Supabase Auth（Magic Link）**: メールアドレス入力 → ワンタイムリンク送信 → クリックでセッション確立
+- セッションは Cookie で管理（`@supabase/ssr`）
+- 将来の Google/Apple 認証はダッシュボードで ON にするだけ（コード変更不要）
+
+### 同期戦略
+
+```
+未ログイン: PGlite のみ（オフラインファースト）
+ログイン中: PGlite → Supabase write-through（ベストエフォート）
+ログイン時: ローカルにデータあれば uploadAll → Supabase
+           ローカルが空なら downloadAll ← Supabase
+衝突解決:   Last-Write-Wins（updated_at ISO 8601 辞書順）
+```
+
+詳細な DDL は `docs/auth-sync-design.md` を参照。
 ```
