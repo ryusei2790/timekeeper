@@ -42,6 +42,7 @@ export const routineItemService = {
     const result = await db.query<RoutineItemRow>(
       'SELECT * FROM routine_items ORDER BY created_at'
     );
+    console.log(`[routineItemService] getAll() → ${result.rows.length}件取得`);
     return result.rows.map(rowToRoutineItem);
   },
 
@@ -79,6 +80,7 @@ export const routineItemService = {
       createdAt: now(),
       updatedAt: now(),
     };
+    console.log(`[routineItemService] create() → id=${newItem.id}, name="${newItem.name}"`);
     await db.query(
       `INSERT INTO routine_items (id, name, duration, location_id, icon, color, is_flexible, priority, created_at, updated_at)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
@@ -103,6 +105,7 @@ export const routineItemService = {
    * @throws 指定 ID の習慣項目が見つからない場合
    */
   async update(id: string, data: UpdateInput<RoutineItem>): Promise<RoutineItem> {
+    console.log(`[routineItemService] update() → id=${id}`);
     const current = await this.getById(id);
     if (!current) throw new Error(`RoutineItem が見つかりません: ${id}`);
 
@@ -134,6 +137,7 @@ export const routineItemService = {
    * 習慣項目を削除する
    */
   async delete(id: string): Promise<void> {
+    console.log(`[routineItemService] delete() → id=${id}`);
     const db = await getDb();
     await db.query('DELETE FROM routine_items WHERE id = $1', [id]);
   },

@@ -29,11 +29,16 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
   error: null,
 
   loadDailyState: async (date) => {
+    console.log(`[DailyStateStore] loadDailyState(${date}) 開始`);
     set({ isLoading: true, error: null });
     try {
       const todayState = await dailyStateService.getByDate(date);
+      console.log(
+        `[DailyStateStore] loadDailyState(${date}) 完了: ${todayState ? `あり (schedule=${todayState.generatedSchedule.length}件)` : 'なし'}`
+      );
       set({ todayState, isLoading: false });
     } catch (error) {
+      console.error(`[DailyStateStore] loadDailyState(${date}) 失敗:`, error);
       set({
         error: error instanceof Error ? error.message : '読み込みに失敗しました',
         isLoading: false,
@@ -91,10 +96,14 @@ export const useDailyStateStore = create<DailyStateStore>((set, get) => ({
   },
 
   saveDailyState: async (state) => {
+    console.log(
+      `[DailyStateStore] saveDailyState(${state.date}) → patternId=${state.patternId}, schedule=${state.generatedSchedule.length}件`
+    );
     try {
       const saved = await dailyStateService.upsert(state);
       set({ todayState: saved });
     } catch (error) {
+      console.error(`[DailyStateStore] saveDailyState(${state.date}) 失敗:`, error);
       set({ error: error instanceof Error ? error.message : '保存に失敗しました' });
       throw error;
     }

@@ -38,13 +38,20 @@ function readLocalStorage<T>(key: string): T[] | null {
 export async function migrateFromLocalStorage(): Promise<void> {
   if (typeof window === 'undefined') return;
 
+  console.log('[DB:Migrate] マイグレーション確認中...');
+  const migrationFlag = window.localStorage.getItem(MIGRATION_FLAG_KEY);
+  console.log(
+    `[DB:Migrate] 移行済みフラグ: ${migrationFlag ? `あり (${migrationFlag})` : 'なし → 移行を実行'}`
+  );
+
   // 既に移行済みなら何もしない
-  if (window.localStorage.getItem(MIGRATION_FLAG_KEY)) return;
+  if (migrationFlag) return;
 
   const db = await getDb();
 
   // locations
   const locations = readLocalStorage<Location>(STORAGE_KEYS.locations);
+  console.log(`[DB:Migrate] locations: ${locations ? `${locations.length}件` : 'データなし'}`);
   if (locations) {
     for (const loc of locations) {
       await db.query(
@@ -64,6 +71,9 @@ export async function migrateFromLocalStorage(): Promise<void> {
 
   // routine_items
   const routineItems = readLocalStorage<RoutineItem>(STORAGE_KEYS.routineItems);
+  console.log(
+    `[DB:Migrate] routine_items: ${routineItems ? `${routineItems.length}件` : 'データなし'}`
+  );
   if (routineItems) {
     for (const item of routineItems) {
       await db.query(
@@ -87,6 +97,7 @@ export async function migrateFromLocalStorage(): Promise<void> {
 
   // life_patterns
   const patterns = readLocalStorage<LifePattern>(STORAGE_KEYS.patterns);
+  console.log(`[DB:Migrate] life_patterns: ${patterns ? `${patterns.length}件` : 'データなし'}`);
   if (patterns) {
     for (const p of patterns) {
       await db.query(
@@ -106,6 +117,9 @@ export async function migrateFromLocalStorage(): Promise<void> {
 
   // travel_routes
   const travelRoutes = readLocalStorage<TravelRoute>(STORAGE_KEYS.travelRoutes);
+  console.log(
+    `[DB:Migrate] travel_routes: ${travelRoutes ? `${travelRoutes.length}件` : 'データなし'}`
+  );
   if (travelRoutes) {
     for (const r of travelRoutes) {
       await db.query(
@@ -127,6 +141,9 @@ export async function migrateFromLocalStorage(): Promise<void> {
 
   // calendar_events
   const calendarEvents = readLocalStorage<CalendarEvent>(STORAGE_KEYS.calendarEvents);
+  console.log(
+    `[DB:Migrate] calendar_events: ${calendarEvents ? `${calendarEvents.length}件` : 'データなし'}`
+  );
   if (calendarEvents) {
     for (const e of calendarEvents) {
       await db.query(
@@ -149,6 +166,9 @@ export async function migrateFromLocalStorage(): Promise<void> {
 
   // daily_states
   const dailyStates = readLocalStorage<DailyState>(STORAGE_KEYS.dailyStates);
+  console.log(
+    `[DB:Migrate] daily_states: ${dailyStates ? `${dailyStates.length}件` : 'データなし'}`
+  );
   if (dailyStates) {
     for (const s of dailyStates) {
       await db.query(
@@ -172,6 +192,7 @@ export async function migrateFromLocalStorage(): Promise<void> {
 
   // settings (singleton)
   const settingsRaw = window.localStorage.getItem(STORAGE_KEYS.settings);
+  console.log(`[DB:Migrate] settings: ${settingsRaw ? 'あり' : 'データなし'}`);
   if (settingsRaw) {
     try {
       const s = JSON.parse(settingsRaw) as Settings;

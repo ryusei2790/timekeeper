@@ -53,13 +53,20 @@ export const dailyStateService = {
     const result = await db.query<DailyStateRow>('SELECT * FROM daily_states WHERE date = $1', [
       date,
     ]);
-    return result.rows[0] ? rowToDailyState(result.rows[0]) : null;
+    const found = result.rows[0] ? rowToDailyState(result.rows[0]) : null;
+    console.log(
+      `[dailyStateService] getByDate(${date}) → ${found ? `あり (patternId=${found.patternId}, schedule=${found.generatedSchedule.length}件)` : 'なし'}`
+    );
+    return found;
   },
 
   /**
    * 日次状態を作成または更新する（Upsert）
    */
   async upsert(data: Omit<DailyState, 'createdAt' | 'updatedAt'>): Promise<DailyState> {
+    console.log(
+      `[dailyStateService] upsert(${data.date}) → patternId=${data.patternId}, schedule=${data.generatedSchedule.length}件`
+    );
     const db = await getDb();
     const existing = await this.getByDate(data.date);
     const createdAt = existing?.createdAt ?? now();

@@ -4,6 +4,7 @@ import type { PGlite } from '@electric-sql/pglite';
  * 全エンティティのDDLスキーマを初期化する
  */
 export async function initSchema(db: PGlite): Promise<void> {
+  console.log('[DB:Schema] テーブル初期化開始');
   await db.exec(`
     CREATE TABLE IF NOT EXISTS locations (
       id TEXT PRIMARY KEY,
@@ -84,4 +85,5 @@ export async function initSchema(db: PGlite): Promise<void> {
       updated_at TEXT NOT NULL DEFAULT ''
     );
   `);
+  console.log('[DB:Schema] テーブル初期化完了');
 }
