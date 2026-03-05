@@ -14,9 +14,13 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
+import { getDb } from '@/lib/db';
 import { useCalendarStore } from '@/store/useCalendarStore';
 import { useLocationStore } from '@/store/useLocationStore';
+import { usePatternStore } from '@/store/usePatternStore';
+import { useRoutineStore } from '@/store/useRoutineStore';
 import { useSettingsStore } from '@/store/useSettingsStore';
+import { useTravelRouteStore } from '@/store/useTravelRouteStore';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import { Calendar, Download, Trash2, Upload } from 'lucide-react';
@@ -28,6 +32,9 @@ export default function SettingsPage() {
     useSettingsStore();
   const { locations, loadLocations } = useLocationStore();
   const { calendarEvents, loadCalendarEvents, clearEvents } = useCalendarStore();
+  const { loadPatterns } = usePatternStore();
+  const { loadRoutineItems } = useRoutineStore();
+  const { loadTravelRoutes } = useTravelRouteStore();
 
   useEffect(() => {
     loadSettings();
@@ -57,19 +64,22 @@ export default function SettingsPage() {
   }, [isLoading, settings, locations, initializeSettings]);
 
   // ---- データエクスポート ----
-  function handleExport() {
+  async function handleExport() {
     try {
-      const keys = Object.keys(localStorage).filter((k) => k.startsWith('timekeeper_'));
-      const data: Record<string, unknown> = {};
-      for (const key of keys) {
-        const raw = localStorage.getItem(key);
-        if (raw) {
-          try {
-            data[key] = JSON.parse(raw);
-          } catch {
-            data[key] = raw;
-          }
-        }
+      const db = await getDb();
+      const tables = [
+        'locations',
+        'routine_items',
+        'life_patterns',
+        'travel_routes',
+        'calendar_events',
+        'daily_states',
+        'settings',
+      ] as const;
+      const data: Record<string, unknown[]> = {};
+      for (const table of tables) {
+        const result = await db.query(`SELECT * FROM ${table}`);
+        data[table] = result.rows;
       }
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -93,15 +103,49 @@ export default function SettingsPage() {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
+      reader.onload = async (ev) => {
         try {
-          const data = JSON.parse(ev.target?.result as string) as Record<string, unknown>;
-          for (const [key, value] of Object.entries(data)) {
-            if (key.startsWith('timekeeper_')) {
-              localStorage.setItem(key, JSON.stringify(value));
+          const data = JSON.parse(ev.target?.result as string) as Record<string, unknown[]>;
+          const db = await getDb();
+
+          // 既存データを全削除してからインポート
+          for (const table of [
+            'settings',
+            'daily_states',
+            'calendar_events',
+            'travel_routes',
+            'life_patterns',
+            'routine_items',
+            'locations',
+          ]) {
+            await db.query(`DELETE FROM ${table}`);
+          }
+
+          // 各テーブルにデータを挿入
+          for (const [table, rows] of Object.entries(data)) {
+            if (!Array.isArray(rows) || rows.length === 0) continue;
+            const columns = Object.keys(rows[0] as Record<string, unknown>);
+            for (const row of rows as Record<string, unknown>[]) {
+              const values = columns.map((col) => row[col]);
+              const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
+              await db.query(
+                `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders}) ON CONFLICT DO NOTHING`,
+                values
+              );
             }
           }
-          toast.success('データをインポートしました。ページを再読み込みしてください。');
+
+          // 全Storeを再ロード
+          await Promise.all([
+            loadSettings(),
+            loadLocations(),
+            loadCalendarEvents(),
+            loadPatterns(),
+            loadRoutineItems(),
+            loadTravelRoutes(),
+          ]);
+
+          toast.success('データをインポートしました');
         } catch {
           toast.error('インポートに失敗しました。ファイル形式を確認してください。');
         }
@@ -112,11 +156,34 @@ export default function SettingsPage() {
   }
 
   // ---- データ全削除 ----
-  function handleClearData() {
+  async function handleClearData() {
     if (!confirm('すべてのデータを削除します。この操作は取り消せません。続けますか？')) return;
-    const keys = Object.keys(localStorage).filter((k) => k.startsWith('timekeeper_'));
-    keys.forEach((k) => localStorage.removeItem(k));
-    toast.success('データを削除しました。ページを再読み込みしてください。');
+    try {
+      const db = await getDb();
+      for (const table of [
+        'settings',
+        'daily_states',
+        'calendar_events',
+        'travel_routes',
+        'life_patterns',
+        'routine_items',
+        'locations',
+      ]) {
+        await db.query(`DELETE FROM ${table}`);
+      }
+      // 全Storeを再ロード
+      await Promise.all([
+        loadSettings(),
+        loadLocations(),
+        loadCalendarEvents(),
+        loadPatterns(),
+        loadRoutineItems(),
+        loadTravelRoutes(),
+      ]);
+      toast.success('データを削除しました');
+    } catch {
+      toast.error('データの削除に失敗しました');
+    }
   }
 
   if (isLoading) {
@@ -286,7 +353,7 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-base">データ管理</CardTitle>
           <CardDescription>
-            すべてのデータは端末のブラウザ（LocalStorage）に保存されています
+            すべてのデータは端末のブラウザ（IndexedDB）に保存されています
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
