@@ -73,6 +73,7 @@ PGlite (IndexedDB上のPostgreSQL, idb://timekeeper)
 - ✅ Phase 3: 基本UI（`components/forms/`, `components/layout/`）
 - ✅ Phase 4: ホーム画面・タイムライン（`components/timeline/`）
 - ✅ Phase 5a: カレンダー連携（.ics ファイルインポート）
+- ✅ バグ修正: settings未初期化によるスケジュール生成不能を修正（`DbInitializer.tsx` でアプリ起動時に自動初期化）
 - ⬜ Phase 5b: Google Calendar OAuth リアルタイム同期（将来・v2）
 - ⬜ Phase 6: Supabase統合（パスフレーズ方式・クロスデバイス同期）+ Vercel デプロイ
 
