@@ -20,7 +20,9 @@ import { useLocationStore } from '@/store/useLocationStore';
 import { MapPin, RefreshCw } from 'lucide-react';
 
 export default function HomePage() {
-  const { timeString, now } = useCurrentTime();
+  const currentTime = useCurrentTime();
+  const now = currentTime?.now;
+  const timeString = currentTime?.timeString ?? '';
   const {
     schedule,
     todayState,
@@ -48,8 +50,17 @@ export default function HomePage() {
       {/* ページヘッダー */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold">{formatJapaneseDate(now)}</h1>
-          <p className="mt-0.5 font-mono text-3xl font-semibold tabular-nums">{timeString}</p>
+          {now ? (
+            <>
+              <h1 className="text-xl font-bold">{formatJapaneseDate(now)}</h1>
+              <p className="mt-0.5 font-mono text-3xl font-semibold tabular-nums">{timeString}</p>
+            </>
+          ) : (
+            <>
+              <Skeleton className="h-7 w-32 rounded" />
+              <Skeleton className="mt-1 h-9 w-24 rounded" />
+            </>
+          )}
         </div>
         {currentLocationName && (
           <Badge variant="secondary" className="mt-1 flex items-center gap-1">

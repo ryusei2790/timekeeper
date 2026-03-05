@@ -28,7 +28,7 @@ export default function CalendarPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { settings } = useSettingsStore();
-  const { timeString } = useCurrentTime();
+  const timeString = useCurrentTime()?.timeString ?? '';
   const { schedule, todayState, activeEvent, nextEvent, patterns, handleComplete, handleSkip } =
     useDailySchedule();
 

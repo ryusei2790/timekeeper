@@ -1,25 +1,43 @@
 'use client';
 
 import { formatTime } from '@/lib/utils/time';
-import { useEffect, useState } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
+
+let currentTime = new Date();
+const listeners = new Set<() => void>();
+
+const subscribe = (callback: () => void) => {
+  listeners.add(callback);
+  const timer = setInterval(() => {
+    currentTime = new Date();
+    listeners.forEach((l) => l());
+  }, 1000);
+  return () => {
+    listeners.delete(callback);
+    clearInterval(timer);
+  };
+};
+
+const getSnapshot = () => currentTime;
+const getServerSnapshot = () => null;
 
 /**
  * 現在時刻を1秒ごとに更新するフック
  *
- * @returns 現在時刻の Date オブジェクトと HH:mm 文字列
+ * `useSyncExternalStore` を使用することで、SSRとクライアントの
+ * ハイドレーションミスマッチを安全に回避する。
+ *
+ * @returns 現在時刻の Date オブジェクトと HH:mm 文字列（SSR時は null）
  */
-export function useCurrentTime() {
-  const [now, setNow] = useState<Date>(() => new Date());
+export function useCurrentTime(): { now: Date; timeString: string } | null {
+  const now = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setNow(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  const format = useCallback((d: Date) => formatTime(d), []);
+
+  if (!now) return null;
 
   return {
     now,
-    timeString: formatTime(now),
+    timeString: format(now),
   };
 }
