@@ -2,6 +2,7 @@
 
 import { migrateFromLocalStorage } from '@/lib/db/migrate';
 import { settingsService } from '@/lib/data/settings';
+import { getDb } from '@/lib/db';
 import { useEffect } from 'react';
 
 /**
@@ -18,8 +19,13 @@ export function DbInitializer() {
       // settings が未初期化の場合はデフォルト値で初期化する
       const existing = await settingsService.get();
       if (!existing) {
-        console.log('[DbInitializer] settings未初期化 → デフォルト値で初期化');
-        await settingsService.initialize('');
+        const db = await getDb();
+        const { rows } = await db.query<{ id: string }>('SELECT id FROM locations LIMIT 1');
+        const defaultLocationId = rows[0]?.id ?? '';
+        console.log(
+          `[DbInitializer] settings未初期化 → 初期化 (defaultLocationId="${defaultLocationId}")`
+        );
+        await settingsService.initialize(defaultLocationId);
       }
     }
 
