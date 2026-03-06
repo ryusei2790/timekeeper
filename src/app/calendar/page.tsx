@@ -9,14 +9,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { parseIcsText } from '@/lib/calendar/ics';
-import { importCalendarEvents } from '@/lib/calendar/sync';
+import { importCalendarEvents, importCalendarEventsFromGoogle } from '@/lib/calendar/sync';
 import type { SyncResult } from '@/lib/calendar/sync';
 import { useDailySchedule } from '@/hooks/useDailySchedule';
 import { useCurrentTime } from '@/hooks/useCurrentTime';
 import { useSettingsStore } from '@/store/useSettingsStore';
 import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
-import { AlertCircle, Calendar, CheckCircle, FileUp, Loader2 } from 'lucide-react';
+import { AlertCircle, Calendar, CheckCircle, FileUp, Loader2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -26,6 +26,9 @@ export default function CalendarPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<SyncResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [isGoogleSyncing, setIsGoogleSyncing] = useState(false);
+  const [googleSyncResult, setGoogleSyncResult] = useState<SyncResult | null>(null);
 
   const { settings } = useSettingsStore();
   const timeString = useCurrentTime()?.timeString ?? '';
@@ -73,6 +76,43 @@ export default function CalendarPage() {
     fileInputRef.current?.click();
   }, []);
 
+  /** Google Calendar iCal URL から同期する */
+  const handleGoogleSync = useCallback(async () => {
+    const url = settings?.calendarSync.googleIcalUrl;
+    if (!url) return;
+
+    setIsGoogleSyncing(true);
+    setGoogleSyncResult(null);
+    try {
+      const response = await fetch('/api/calendar/google-ical', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (!response.ok) {
+        const data = (await response.json()) as { error?: string };
+        throw new Error(data.error ?? 'カレンダーの取得に失敗しました');
+      }
+      const icsText = await response.text();
+      const events = parseIcsText(icsText);
+
+      if (events.length === 0) {
+        toast.error('イベントが見つかりませんでした。URL を確認してください。');
+        return;
+      }
+
+      const result = await importCalendarEventsFromGoogle(events);
+      setGoogleSyncResult(result);
+      toast.success(
+        `同期完了: ${result.added}件追加, ${result.updated}件更新, ${result.deleted}件削除`
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '同期に失敗しました');
+    } finally {
+      setIsGoogleSyncing(false);
+    }
+  }, [settings?.calendarSync.googleIcalUrl]);
+
   return (
     <div className="container mt-8 ml-8 max-w-2xl space-y-6 py-6">
       {/* ページヘッダー */}
@@ -86,6 +126,7 @@ export default function CalendarPage() {
       <Tabs defaultValue="import">
         <TabsList>
           <TabsTrigger value="import">インポート</TabsTrigger>
+          <TabsTrigger value="google">Google Calendar</TabsTrigger>
           <TabsTrigger value="schedule">今日のスケジュール</TabsTrigger>
         </TabsList>
 
@@ -177,6 +218,85 @@ export default function CalendarPage() {
                       カレンダーを書き出し
                     </li>
                   </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Google Calendar タブ */}
+        <TabsContent value="google" className="mt-4 space-y-4">
+          {settings?.calendarSync.googleIcalUrl ? (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  <CardTitle className="text-base">Google Calendar</CardTitle>
+                  {settings.calendarSync.googleLastSyncAt && (
+                    <Badge variant="secondary" className="ml-auto">
+                      <CheckCircle className="mr-1 h-3 w-3 text-green-600" />
+                      最終同期:{' '}
+                      {format(new Date(settings.calendarSync.googleLastSyncAt), 'M月d日 HH:mm', {
+                        locale: ja,
+                      })}
+                    </Badge>
+                  )}
+                </div>
+                <CardDescription className="text-xs">
+                  登録済みの iCal URL から Google Calendar のイベントを取得します
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Button className="w-full" onClick={handleGoogleSync} disabled={isGoogleSyncing}>
+                  {isGoogleSyncing ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-1.5 h-4 w-4" />
+                  )}
+                  {isGoogleSyncing ? '同期中...' : '今すぐ同期'}
+                </Button>
+                {googleSyncResult && (
+                  <div className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">
+                    同期完了: {googleSyncResult.added}件追加 / {googleSyncResult.updated}件更新 /{' '}
+                    {googleSyncResult.deleted}件削除（合計 {googleSyncResult.total}
+                    件のイベントを処理）
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-amber-100 bg-amber-50">
+              <CardContent className="pt-4">
+                <div className="flex gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <div className="space-y-2 text-sm text-amber-800">
+                    <p className="font-medium">Google Calendar URL が未設定です</p>
+                    <p className="text-xs">
+                      設定ページで Google Calendar の iCal 限定公開 URL を登録してください。
+                    </p>
+                    <Link
+                      href="/settings"
+                      className="inline-flex items-center rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 shadow-sm transition-colors hover:bg-amber-50"
+                    >
+                      設定ページへ
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          <Card className="border-blue-100 bg-blue-50">
+            <CardContent className="pt-4">
+              <div className="flex gap-2">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
+                <div className="space-y-1 text-sm text-blue-800">
+                  <p className="font-medium">iCal URL の取得方法</p>
+                  <ol className="ml-1 list-inside list-decimal space-y-1 text-xs">
+                    <li>Google Calendar を開き、右上の歯車アイコン → 「設定」</li>
+                    <li>左側のカレンダー一覧から対象のカレンダーをクリック</li>
+                    <li>「カレンダーの統合」セクションの「iCal 形式の限定公開 URL」をコピー</li>
+                    <li>設定ページの「Google Calendar 連携」に貼り付けて保存</li>
+                  </ol>
                 </div>
               </div>
             </CardContent>

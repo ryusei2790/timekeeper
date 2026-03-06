@@ -288,8 +288,12 @@ export interface CalendarSyncSettings {
   autoSync: boolean;
   /** 同期間隔（分） */
   syncIntervalMinutes: number;
-  /** 最終同期日時（ISO 8601形式、未同期の場合は null） */
+  /** .ics インポートの最終同期日時（ISO 8601形式、未同期の場合は null） */
   lastSyncAt: string | null;
+  /** Google Calendar iCal 限定公開URL（任意） */
+  googleIcalUrl?: string;
+  /** Google Calendar 最終同期日時（ISO 8601形式、未同期の場合は null） */
+  googleLastSyncAt?: string | null;
 }
 
 /**
