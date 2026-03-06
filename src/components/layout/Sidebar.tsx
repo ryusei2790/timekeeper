@@ -2,7 +2,7 @@
 
 import { NAV_ITEMS } from '@/constants';
 import { cn } from '@/lib/utils';
-import { Calendar, CalendarDays, Home, MapPin, Settings } from 'lucide-react';
+import { BookOpen, Calendar, CalendarDays, Home, MapPin, Settings } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -12,6 +12,7 @@ const ICON_MAP = {
   MapPin,
   CalendarDays,
   Settings,
+  BookOpen,
 } as const;
 
 /**

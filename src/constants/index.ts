@@ -19,6 +19,7 @@ export const NAV_ITEMS = [
   { icon: 'MapPin', label: '場所・移動', href: '/places' },
   { icon: 'CalendarDays', label: 'カレンダー', href: '/calendar' },
   { icon: 'Settings', label: '設定', href: '/settings' },
+  { icon: 'BookOpen', label: '使い方', href: '/how' },
 ] as const;
 
 /**
