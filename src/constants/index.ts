@@ -61,5 +61,7 @@ export const DEFAULT_SETTINGS = {
     autoSync: false,
     syncIntervalMinutes: 60,
     lastSyncAt: null,
+    googleIcalUrl: undefined,
+    googleLastSyncAt: null,
   },
 };
