@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -39,12 +40,21 @@ export default function SettingsPage() {
   const { loadTravelRoutes } = useTravelRouteStore();
   const { user, signOut } = useAuthStore();
   const [isSyncing, setIsSyncing] = useState(false);
+  const [googleIcalUrl, setGoogleIcalUrl] = useState('');
+  const [isSavingUrl, setIsSavingUrl] = useState(false);
 
   useEffect(() => {
     loadSettings();
     loadLocations();
     loadCalendarEvents();
   }, [loadSettings, loadLocations, loadCalendarEvents]);
+
+  // settings がロードされたら Google iCal URL を初期化
+  useEffect(() => {
+    if (settings?.calendarSync.googleIcalUrl !== undefined) {
+      setGoogleIcalUrl(settings.calendarSync.googleIcalUrl ?? '');
+    }
+  }, [settings?.calendarSync.googleIcalUrl]);
 
   // 日付ごとにグループ化（直近10日分のみ表示）
   const eventsByDate = useMemo(() => {
@@ -439,6 +449,62 @@ export default function SettingsPage() {
               パターン・場所・習慣項目などすべてのデータが削除されます
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* -------- Google Calendar 連携 -------- */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4" />
+            <CardTitle className="text-base">Google Calendar 連携</CardTitle>
+          </div>
+          <CardDescription>
+            Google Calendar の設定画面から「iCal 形式の限定公開 URL」をコピーして登録すると、
+            カレンダー連携ページから直接同期できます。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="space-y-1.5">
+            <Label htmlFor="google-ical-url">iCal 限定公開 URL</Label>
+            <Input
+              id="google-ical-url"
+              type="url"
+              placeholder="https://calendar.google.com/calendar/ical/..."
+              value={googleIcalUrl}
+              onChange={(e) => setGoogleIcalUrl(e.target.value)}
+            />
+            <p className="text-muted-foreground text-xs">
+              Google Calendar → 設定 → カレンダーの設定 →「iCal 形式の限定公開 URL」
+            </p>
+          </div>
+          <Button
+            size="sm"
+            disabled={isSavingUrl}
+            onClick={async () => {
+              setIsSavingUrl(true);
+              try {
+                await updateSettings({
+                  calendarSync: {
+                    ...(settings?.calendarSync ?? {
+                      autoSync: false,
+                      syncIntervalMinutes: 60,
+                      lastSyncAt: null,
+                      googleLastSyncAt: null,
+                    }),
+                    googleIcalUrl: googleIcalUrl.trim() || undefined,
+                  },
+                });
+                toast.success('Google Calendar URL を保存しました');
+              } catch {
+                toast.error('保存に失敗しました');
+              } finally {
+                setIsSavingUrl(false);
+              }
+            }}
+          >
+            保存
+          </Button>
         </CardContent>
       </Card>
 
