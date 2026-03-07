@@ -228,7 +228,7 @@ export default function HowPage() {
 
         {/* Google Calendar 同期 */}
         <div className="space-y-4">
-          <h3 className="font-medium">Google Calendar と同期する</h3>
+          <h3 className="font-medium">Google Calendar と同期する（iCal 同期）</h3>
           <p className="text-sm">
             「<strong>Google Calendar</strong>」タブでは、iCal URL
             を登録することで直接同期できます。「<strong>今すぐ同期</strong>
@@ -261,6 +261,47 @@ export default function HowPage() {
             iCal URL の登録は「<strong>設定</strong>」ページの「Google Calendar
             連携」セクションからも行えます。
           </div>
+        </div>
+
+        {/* Google Calendar 埋め込み */}
+        <div className="space-y-4">
+          <h3 className="font-medium">Google Calendar をページ内に表示する（iframe 埋め込み）</h3>
+          <p className="text-sm">
+            埋め込み URL を登録すると、カレンダーページの「<strong>Google Calendar</strong>
+            」タブに Google Calendar をそのまま表示できます。Google
+            アカウントにログイン済みであれば、埋め込み内で予定の閲覧が可能です。
+          </p>
+          <Image
+            src="/docs/images/google-calendar-embed.png"
+            alt="Google Calendar 埋め込み表示"
+            width={874}
+            height={420}
+            className="h-auto w-full rounded-lg border"
+          />
+          <div className="space-y-1 text-sm">
+            <p className="font-medium">埋め込み URL の取得方法:</p>
+            <ol className="text-muted-foreground list-inside list-decimal space-y-1">
+              <li>Google Calendar を開き、右上の歯車アイコン → 「設定」</li>
+              <li>左側のカレンダー一覧から対象のカレンダーをクリック</li>
+              <li>「カレンダーの統合」セクションの「このカレンダーを埋め込む」をクリック</li>
+              <li>表示された HTML の src=&quot;...&quot; の URL をコピー</li>
+              <li>設定ページの「Google Calendar 連携」→「埋め込み URL」に貼り付けて保存</li>
+            </ol>
+          </div>
+          <Image
+            src="/docs/images/google-calendar-embed-url-input.png"
+            alt="設定 - 埋め込み URL 入力欄"
+            width={710}
+            height={133}
+            className="h-auto w-full rounded-lg border"
+          />
+          <Image
+            src="/docs/images/google-calendar-settings.png"
+            alt="設定 - Google Calendar 連携セクション"
+            width={698}
+            height={760}
+            className="h-auto w-full rounded-lg border"
+          />
         </div>
       </section>
 

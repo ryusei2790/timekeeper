@@ -41,6 +41,7 @@ export default function SettingsPage() {
   const { user, signOut } = useAuthStore();
   const [isSyncing, setIsSyncing] = useState(false);
   const [googleIcalUrl, setGoogleIcalUrl] = useState('');
+  const [googleEmbedUrl, setGoogleEmbedUrl] = useState('');
   const [isSavingUrl, setIsSavingUrl] = useState(false);
 
   useEffect(() => {
@@ -49,12 +50,15 @@ export default function SettingsPage() {
     loadCalendarEvents();
   }, [loadSettings, loadLocations, loadCalendarEvents]);
 
-  // settings がロードされたら Google iCal URL を初期化
+  // settings がロードされたら Google iCal URL / 埋め込み URL を初期化
   useEffect(() => {
     if (settings?.calendarSync.googleIcalUrl !== undefined) {
       setGoogleIcalUrl(settings.calendarSync.googleIcalUrl ?? '');
     }
-  }, [settings?.calendarSync.googleIcalUrl]);
+    if (settings?.calendarSync.googleEmbedUrl !== undefined) {
+      setGoogleEmbedUrl(settings.calendarSync.googleEmbedUrl ?? '');
+    }
+  }, [settings?.calendarSync.googleIcalUrl, settings?.calendarSync.googleEmbedUrl]);
 
   // 日付ごとにグループ化（直近10日分のみ表示）
   const eventsByDate = useMemo(() => {
@@ -478,6 +482,20 @@ export default function SettingsPage() {
               Google Calendar → 設定 → カレンダーの設定 →「iCal 形式の限定公開 URL」
             </p>
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="google-embed-url">埋め込み URL</Label>
+            <Input
+              id="google-embed-url"
+              type="url"
+              placeholder="https://calendar.google.com/calendar/embed?src=..."
+              value={googleEmbedUrl}
+              onChange={(e) => setGoogleEmbedUrl(e.target.value)}
+            />
+            <p className="text-muted-foreground text-xs">
+              Google Calendar → 設定 → カレンダーの統合 →「このカレンダーを埋め込む」の HTML 内
+              src=&quot;...&quot; の値
+            </p>
+          </div>
           <Button
             size="sm"
             disabled={isSavingUrl}
@@ -493,9 +511,10 @@ export default function SettingsPage() {
                       googleLastSyncAt: null,
                     }),
                     googleIcalUrl: googleIcalUrl.trim() || undefined,
+                    googleEmbedUrl: googleEmbedUrl.trim() || undefined,
                   },
                 });
-                toast.success('Google Calendar URL を保存しました');
+                toast.success('Google Calendar 設定を保存しました');
               } catch {
                 toast.error('保存に失敗しました');
               } finally {
