@@ -294,6 +294,8 @@ export interface CalendarSyncSettings {
   googleIcalUrl?: string;
   /** Google Calendar 最終同期日時（ISO 8601形式、未同期の場合は null） */
   googleLastSyncAt?: string | null;
+  /** Google Calendar iframe 埋め込みURL（任意） */
+  googleEmbedUrl?: string;
 }
 
 /**

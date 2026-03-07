@@ -226,12 +226,38 @@ export default function CalendarPage() {
 
         {/* Google Calendar タブ */}
         <TabsContent value="google" className="mt-4 space-y-4">
-          {settings?.calendarSync.googleIcalUrl ? (
+          {/* iframe 埋め込み */}
+          {settings?.calendarSync.googleEmbedUrl && (
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
                   <CardTitle className="text-base">Google Calendar</CardTitle>
+                </div>
+                <CardDescription className="text-xs">
+                  Google アカウントにログイン済みであれば、カレンダー内で予定を閲覧できます
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="overflow-hidden p-0 pb-0">
+                <iframe
+                  src={settings.calendarSync.googleEmbedUrl}
+                  style={{ border: 0 }}
+                  width="100%"
+                  height="600"
+                  title="Google Calendar"
+                  className="rounded-b-lg"
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* iCal 同期 */}
+          {settings?.calendarSync.googleIcalUrl ? (
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  <CardTitle className="text-base">iCal 同期</CardTitle>
                   {settings.calendarSync.googleLastSyncAt && (
                     <Badge variant="secondary" className="ml-auto">
                       <CheckCircle className="mr-1 h-3 w-3 text-green-600" />
@@ -264,15 +290,16 @@ export default function CalendarPage() {
                 )}
               </CardContent>
             </Card>
-          ) : (
+          ) : !settings?.calendarSync.googleEmbedUrl ? (
             <Card className="border-amber-100 bg-amber-50">
               <CardContent className="pt-4">
                 <div className="flex gap-2">
                   <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                   <div className="space-y-2 text-sm text-amber-800">
-                    <p className="font-medium">Google Calendar URL が未設定です</p>
+                    <p className="font-medium">Google Calendar が未設定です</p>
                     <p className="text-xs">
-                      設定ページで Google Calendar の iCal 限定公開 URL を登録してください。
+                      設定ページで Google Calendar の埋め込み URL または iCal 限定公開 URL
+                      を登録してください。
                     </p>
                     <Link
                       href="/settings"
@@ -284,17 +311,21 @@ export default function CalendarPage() {
                 </div>
               </CardContent>
             </Card>
-          )}
+          ) : null}
+
           <Card className="border-blue-100 bg-blue-50">
             <CardContent className="pt-4">
               <div className="flex gap-2">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-blue-600" />
                 <div className="space-y-1 text-sm text-blue-800">
-                  <p className="font-medium">iCal URL の取得方法</p>
+                  <p className="font-medium">URL の取得方法</p>
                   <ol className="ml-1 list-inside list-decimal space-y-1 text-xs">
                     <li>Google Calendar を開き、右上の歯車アイコン → 「設定」</li>
                     <li>左側のカレンダー一覧から対象のカレンダーをクリック</li>
-                    <li>「カレンダーの統合」セクションの「iCal 形式の限定公開 URL」をコピー</li>
+                    <li>
+                      「カレンダーの統合」セクションから 埋め込み URL または iCal 形式の限定公開 URL
+                      をコピー
+                    </li>
                     <li>設定ページの「Google Calendar 連携」に貼り付けて保存</li>
                   </ol>
                 </div>
