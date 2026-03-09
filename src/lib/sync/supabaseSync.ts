@@ -144,11 +144,41 @@ export async function uploadAll(userId: string): Promise<void> {
   }
 
   // settings: PK = user_id
+  // LWW: Supabase の updated_at と比較し、新しい方を優先する
   if (settings) {
-    upsertPromises.push(
-      supabase
+    const settingsUploadPromise = (async () => {
+      const { data: remoteSettings, error: fetchError } = await supabase
         .from('settings')
-        .upsert(
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.warn('[supabaseSync] settings remote 取得失敗:', fetchError.message);
+      }
+
+      if (remoteSettings && remoteSettings.updated_at > settings.updatedAt) {
+        // Supabase の方が新しい → ローカルに反映してアップロードをスキップ
+        console.log('[supabaseSync] settings: Supabase が新しいためローカルに反映します');
+        const db = await getDb();
+        await db.query(
+          `UPDATE settings SET
+            default_location_id=$1, week_starts_on=$2, time_format=$3, theme=$4,
+            notifications=$5, calendar_sync=$6, updated_at=$7
+           WHERE id='default' AND updated_at < $7`,
+          [
+            remoteSettings.default_location_id,
+            remoteSettings.week_starts_on,
+            remoteSettings.time_format,
+            remoteSettings.theme,
+            JSON.stringify(remoteSettings.notifications),
+            JSON.stringify(remoteSettings.calendar_sync),
+            remoteSettings.updated_at,
+          ]
+        );
+      } else {
+        // ローカルの方が新しい（または Supabase に未保存）→ 通常通り upsert
+        const { error } = await supabase.from('settings').upsert(
           {
             user_id: userId,
             default_location_id: settings.defaultLocationId,
@@ -161,12 +191,11 @@ export async function uploadAll(userId: string): Promise<void> {
             updated_at: settings.updatedAt,
           },
           { onConflict: 'user_id' }
-        )
-        .then((res: { error: { message: string } | null }) => {
-          const error = res.error;
-          if (error) console.warn('[supabaseSync] settings upload 失敗:', error.message);
-        })
-    );
+        );
+        if (error) console.warn('[supabaseSync] settings upload 失敗:', error.message);
+      }
+    })();
+    upsertPromises.push(settingsUploadPromise);
   }
 
   await Promise.all(upsertPromises);
