@@ -59,11 +59,12 @@ export const settingsService = {
    */
   async initialize(defaultLocationId: string): Promise<Settings> {
     const db = await getDb();
+    // updatedAt を epoch にすることで、Supabase 上の既存データが必ず優先される（LWW）
     const settings: Settings = {
       ...DEFAULT_SETTINGS,
       defaultLocationId,
-      createdAt: now(),
-      updatedAt: now(),
+      createdAt: '1970-01-01T00:00:00.000Z',
+      updatedAt: '1970-01-01T00:00:00.000Z',
     };
     await db.query(
       `INSERT INTO settings (id, default_location_id, week_starts_on, time_format, theme, notifications, calendar_sync, created_at, updated_at)

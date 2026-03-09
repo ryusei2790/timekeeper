@@ -29,10 +29,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return;
     }
 
+    // getUser() はサーバーと通信してセッションを検証するため、getSession() より信頼性が高い
     const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    set({ user: session?.user ?? null, isInitialized: true });
+      data: { user },
+    } = await supabase.auth.getUser();
+    set({ user: user ?? null, isInitialized: true });
 
     // セッション変更をリッスンして user を同期する
     supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
