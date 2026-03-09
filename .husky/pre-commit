@@ -1,1 +1,2 @@
+export PATH="$HOME/.local/share/pnpm:$HOME/Library/pnpm:/opt/homebrew/bin:/usr/local/bin:$PATH"
 pnpm dlx lint-staged
