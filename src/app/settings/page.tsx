@@ -50,15 +50,12 @@ export default function SettingsPage() {
     loadCalendarEvents();
   }, [loadSettings, loadLocations, loadCalendarEvents]);
 
-  // settings がロードされたら Google iCal URL / 埋め込み URL を初期化
+  // settings がロードされたら Google iCal URL / 埋め込み URL を同期
   useEffect(() => {
-    if (settings?.calendarSync.googleIcalUrl !== undefined) {
-      setGoogleIcalUrl(settings.calendarSync.googleIcalUrl ?? '');
-    }
-    if (settings?.calendarSync.googleEmbedUrl !== undefined) {
-      setGoogleEmbedUrl(settings.calendarSync.googleEmbedUrl ?? '');
-    }
-  }, [settings?.calendarSync.googleIcalUrl, settings?.calendarSync.googleEmbedUrl]);
+    if (!settings) return;
+    setGoogleIcalUrl(settings.calendarSync.googleIcalUrl ?? '');
+    setGoogleEmbedUrl(settings.calendarSync.googleEmbedUrl ?? '');
+  }, [settings]);
 
   // 日付ごとにグループ化（直近10日分のみ表示）
   const eventsByDate = useMemo(() => {
@@ -204,7 +201,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (isLoading || !isInitialized) {
+  if (isLoading) {
     return (
       <div className="container max-w-2xl space-y-4 py-6">
         <Skeleton className="h-8 w-48" />
@@ -229,7 +226,9 @@ export default function SettingsPage() {
           <CardDescription>ログインするとクロスデバイスでデータを同期できます</CardDescription>
         </CardHeader>
         <CardContent>
-          {user ? (
+          {!isInitialized ? (
+            <Skeleton className="h-10 w-full" />
+          ) : user ? (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm">
                 <Cloud className="h-4 w-4 text-green-500" />
