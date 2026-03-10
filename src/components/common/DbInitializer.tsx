@@ -5,6 +5,12 @@ import { settingsService } from '@/lib/data/settings';
 import { getDb } from '@/lib/db';
 import { syncOnLogin } from '@/lib/sync/supabaseSync';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useCalendarStore } from '@/store/useCalendarStore';
+import { useLocationStore } from '@/store/useLocationStore';
+import { usePatternStore } from '@/store/usePatternStore';
+import { useRoutineStore } from '@/store/useRoutineStore';
+import { useSettingsStore } from '@/store/useSettingsStore';
+import { useTravelRouteStore } from '@/store/useTravelRouteStore';
 import { useEffect } from 'react';
 
 /**
@@ -41,6 +47,17 @@ export function DbInitializer() {
         console.log('[DbInitializer] syncOnLogin 開始');
         await syncOnLogin(user.id);
         console.log('[DbInitializer] syncOnLogin 完了');
+
+        // 同期後に全 Store をリロードして UI に反映する
+        await Promise.all([
+          useLocationStore.getState().loadLocations(),
+          useRoutineStore.getState().loadRoutineItems(),
+          usePatternStore.getState().loadPatterns(),
+          useTravelRouteStore.getState().loadTravelRoutes(),
+          useCalendarStore.getState().loadCalendarEvents(),
+          useSettingsStore.getState().loadSettings(),
+        ]);
+        console.log('[DbInitializer] Store リロード完了');
       }
     }
 
