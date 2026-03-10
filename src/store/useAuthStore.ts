@@ -29,7 +29,9 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return;
     }
 
-    // getUser() はサーバーと通信してセッションを検証するため、getSession() より信頼性が高い
+    // getSession() でローカルのリフレッシュトークンによるセッション更新を先に行い、
+    // その後 getUser() でサーバー検証する（期限切れトークンの自動更新を確保）
+    await supabase.auth.getSession();
     const {
       data: { user },
     } = await supabase.auth.getUser();
