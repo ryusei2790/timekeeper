@@ -38,7 +38,7 @@ export default function SettingsPage() {
   const { loadPatterns } = usePatternStore();
   const { loadRoutineItems } = useRoutineStore();
   const { loadTravelRoutes } = useTravelRouteStore();
-  const { user, signOut } = useAuthStore();
+  const { user, isInitialized, signOut } = useAuthStore();
   const [isSyncing, setIsSyncing] = useState(false);
   const [googleIcalUrl, setGoogleIcalUrl] = useState('');
   const [googleEmbedUrl, setGoogleEmbedUrl] = useState('');
@@ -204,7 +204,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (isLoading) {
+  if (isLoading || !isInitialized) {
     return (
       <div className="container max-w-2xl space-y-4 py-6">
         <Skeleton className="h-8 w-48" />
