@@ -6,15 +6,17 @@ import { type NextRequest, NextResponse } from 'next/server';
  * ルート保護は行わない（未ログインでも全機能利用可能）。
  */
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
-
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // 環境変数未設定の場合はスルー（オフライン動作維持）
   if (!url || !key) {
-    return supabaseResponse;
+    return NextResponse.next({ request });
   }
+
+  // Supabase SSR 公式推奨パターン:
+  // response を先に作成し、setAll でその response に Cookie を設定する
+  let response = NextResponse.next({ request });
 
   const supabase = createServerClient(url, key, {
     cookies: {
@@ -23,18 +25,18 @@ export async function middleware(request: NextRequest) {
       },
       setAll(cookiesToSet) {
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        supabaseResponse = NextResponse.next({ request });
+        response = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options)
+          response.cookies.set(name, value, options)
         );
       },
     },
   });
 
-  // セッションを更新してCookieを同期する
+  // セッションを更新してCookieを同期する（getUser でサーバー検証）
   await supabase.auth.getUser();
 
-  return supabaseResponse;
+  return response;
 }
 
 export const config = {
