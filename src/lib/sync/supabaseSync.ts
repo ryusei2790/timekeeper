@@ -165,7 +165,7 @@ export async function uploadAll(userId: string): Promise<void> {
           `UPDATE settings SET
             default_location_id=$1, week_starts_on=$2, time_format=$3, theme=$4,
             notifications=$5, calendar_sync=$6, updated_at=$7
-           WHERE id='default' AND updated_at < $7`,
+           WHERE id='default'`,
           [
             remoteSettings.default_location_id,
             remoteSettings.week_starts_on,
@@ -355,13 +355,19 @@ export async function downloadAll(userId: string): Promise<void> {
   // settings
   if (settingsRes.data) {
     const s = settingsRes.data;
+    // LWW: updated_at が新しい方を優先して全フィールドを上書き。
+    // ただし calendar_sync は Supabase 側に値があれば常にマージする（URL登録デバイスが異なる場合の対策）。
     await db.query(
       `INSERT INTO settings (id, default_location_id, week_starts_on, time_format, theme, notifications, calendar_sync, created_at, updated_at)
        VALUES ('default', $1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (id) DO UPDATE SET
-         default_location_id=$1, week_starts_on=$2, time_format=$3, theme=$4,
-         notifications=$5, calendar_sync=$6, updated_at=$8
-         WHERE settings.updated_at < $8`,
+         default_location_id=CASE WHEN settings.updated_at < $8 THEN $1 ELSE settings.default_location_id END,
+         week_starts_on=CASE WHEN settings.updated_at < $8 THEN $2 ELSE settings.week_starts_on END,
+         time_format=CASE WHEN settings.updated_at < $8 THEN $3 ELSE settings.time_format END,
+         theme=CASE WHEN settings.updated_at < $8 THEN $4 ELSE settings.theme END,
+         notifications=CASE WHEN settings.updated_at < $8 THEN $5 ELSE settings.notifications END,
+         calendar_sync=$6,
+         updated_at=CASE WHEN settings.updated_at < $8 THEN $8 ELSE settings.updated_at END`,
       [
         s.default_location_id,
         s.week_starts_on,

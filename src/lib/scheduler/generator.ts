@@ -235,8 +235,15 @@ export function generateDailySchedule(
     .map((item) => routineToScheduleItem(item, patternItemMap.get(item.id)!.startTime, locations));
 
   // Step 2: CalendarEvent → ScheduleItem（当日分のみ）
+  // startTime はUTC形式（末尾Z）の場合があるため、文字列比較ではなく
+  // ローカル日付に変換してから当日判定する（スマホ等でタイムゾーンがずれる問題を防ぐ）
   const calendarScheduleItems = calendarEvents
-    .filter((e) => e.startTime.startsWith(dateStr) && !e.isAllDay)
+    .filter((e) => {
+      if (e.isAllDay) return false;
+      const localDate = new Date(e.startTime);
+      const localDateStr = `${localDate.getFullYear()}-${String(localDate.getMonth() + 1).padStart(2, '0')}-${String(localDate.getDate()).padStart(2, '0')}`;
+      return localDateStr === dateStr;
+    })
     .flatMap((e) => {
       const item = calendarToScheduleItem(e, locations);
       return item ? [item] : [];
