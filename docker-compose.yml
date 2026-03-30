@@ -1,0 +1,39 @@
+# =============================================================================
+# docker-compose.yml — 開発環境
+#
+# 使い方:
+#   git clone <repo>
+#   cd timekeeper
+#   cp .env.example .env.local   # Supabase の環境変数を設定
+#   docker compose up
+#   → http://localhost:3000 でアプリが起動
+#
+# ホットリロード:
+#   ホスト側のソースコードをボリュームマウントしているため、
+#   ファイルを編集するとコンテナ内の Next.js が自動で再コンパイルする。
+# =============================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      # ソースコードをホストとコンテナで同期（ホットリロード有効）
+      - .:/app
+      # node_modules はコンテナ内のものを優先（ホストの node_modules で上書きしない）
+      - /app/node_modules
+      # .next ビルドキャッシュもコンテナ内で管理
+      - /app/.next
+    env_file:
+      # .env.local が存在する場合のみ読み込む
+      - path: .env.local
+        required: false
+    environment:
+      # Next.js のホットリロードを Docker 環境で確実に動作させる設定
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
+    stdin_open: true
+    tty: true

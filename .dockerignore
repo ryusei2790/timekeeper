@@ -1,0 +1,33 @@
+# Dockerイメージに含めないファイル・ディレクトリ
+# （コンテナ内で pnpm install するため、ホスト側の node_modules は不要）
+
+node_modules
+.next
+.git
+.gitignore
+
+# 環境変数（ビルド時に含めず、実行時に渡す）
+.env
+.env.local
+.env*.local
+
+# OS・エディタ生成ファイル
+.DS_Store
+*.pem
+
+# ログ
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# テスト・カバレッジ
+coverage
+
+# ドキュメント・画像（開発に不要）
+docs
+public/docs
+
+# その他
+.vercel
+*.tsbuildinfo
